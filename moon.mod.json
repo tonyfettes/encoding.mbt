@@ -2,9 +2,9 @@
   "name": "tonyfettes/encoding",
   "version": "0.1.0",
   "readme": "README.md",
-  "repository": "",
+  "repository": "https://github.com/moonbitlang/x",
   "license": "Apache-2.0",
   "keywords": [],
-  "description": "",
+  "description": "Encoding package extracted from moonbitlang/x",
   "source": "src"
 }
