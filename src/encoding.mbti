@@ -1,0 +1,71 @@
+package moonbitlang/x/encoding
+
+alias @moonbitlang/core/buffer as @buffer
+
+// Values
+const U_REP : Char = '�'
+
+fn consume(Decoder, Bytes) -> String!
+
+fn decode(Decoder, Bytes, stream~ : Bool = ..) -> String!
+
+fn decode_lossy(Decoder, Bytes, stream~ : Bool = ..) -> String
+
+fn decode_to(Bytes, StringBuilder, encoding~ : Encoding) -> Unit!
+
+fn decoder(Encoding) -> Decoder
+
+fn encode(Encoding, String) -> Bytes
+
+fn encode_to(String, @buffer.T, encoding~ : Encoding) -> Unit
+
+fn finish(Decoder) -> String!
+
+fn lossy_consume(Decoder, Bytes) -> String
+
+fn lossy_finish(Decoder) -> String
+
+fn to_utf16_bytes(Char) -> Bytes
+
+fn to_utf16be_bytes(Char) -> Bytes
+
+fn to_utf16le_bytes(Char) -> Bytes
+
+fn to_utf8_bytes(Char) -> Bytes
+
+fn write_utf16_char(@buffer.T, Char) -> Unit
+
+fn write_utf16be_char(@buffer.T, Char) -> Unit
+
+fn write_utf16le_char(@buffer.T, Char) -> Unit
+
+fn write_utf8_char(@buffer.T, Char) -> Unit
+
+// Types and methods
+type Decoder
+impl Decoder {
+  consume(Self, Bytes) -> String!
+  decode(Self, Bytes, stream~ : Bool = ..) -> String!
+  decode_lossy(Self, Bytes, stream~ : Bool = ..) -> String
+  decode_lossy_to(Self, Bytes, StringBuilder, stream~ : Bool = ..) -> Unit
+  decode_to(Self, Bytes, StringBuilder, stream~ : Bool = ..) -> Unit!
+  finish(Self) -> String!
+  lossy_consume(Self, Bytes) -> String
+  lossy_finish(Self) -> String
+}
+
+pub(all) enum Encoding {
+  UTF8
+  UTF16
+  UTF16LE
+  UTF16BE
+}
+
+pub type! MalformedError Bytes
+
+pub type! TruncatedError Bytes
+
+// Type aliases
+
+// Traits
+
