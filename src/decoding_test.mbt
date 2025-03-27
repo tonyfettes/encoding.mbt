@@ -406,7 +406,9 @@ test "decoding UTF16LE encoded data with UTF8" {
   assert_true!(chars.is_err())
   inspect!(
     chars,
-    content="Err(moonbitlang/x/encoding.MalformedError.MalformedError)",
+    content=
+      #|Err(MalformedError(b"\xd8\xc3"))
+    ,
   )
 }
 
@@ -421,7 +423,9 @@ test "decode_to/UTF16LE-UTF8/MalformedError" {
   let acc = StringBuilder::new()
   inspect!(
     decoder.decode_to?(buf.to_bytes(), acc),
-    content="Err(moonbitlang/x/encoding.MalformedError.MalformedError)",
+    content=
+      #|Err(MalformedError(b"\xd8\xc3"))
+    ,
   )
 }
 
@@ -439,7 +443,9 @@ test "decode_to/UTF16LE-UTF8/TruncatedError" {
   let result = decoder.decode_to?(bytes_view, acc)
   inspect!(
     result,
-    content="Err(moonbitlang/x/encoding.TruncatedError.TruncatedError)",
+    content=
+      #|Err(TruncatedError(b"\xca\x00\x00\x00"))
+    ,
   )
 }
 
@@ -523,7 +529,9 @@ test "decoding UTF16BE encoded data with UTF8" {
   assert_true!(chars.is_err())
   inspect!(
     chars,
-    content="Err(moonbitlang/x/encoding.MalformedError.MalformedError)",
+    content=
+      #|Err(MalformedError(b"\x8d"))
+    ,
   )
 }
 
@@ -538,7 +546,9 @@ test "decode_to/UTF16BE-UTF8" {
   let acc = StringBuilder::new()
   inspect!(
     decoder.decode_to?(buf.to_bytes(), acc),
-    content="Err(moonbitlang/x/encoding.MalformedError.MalformedError)",
+    content=
+      #|Err(MalformedError(b"\x8d"))
+    ,
   )
 }
 
