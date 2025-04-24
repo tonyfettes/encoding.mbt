@@ -2,27 +2,28 @@ package "tonyfettes/encoding"
 
 import(
   "moonbitlang/core/buffer"
+  "moonbitlang/core/string"
 )
 
 // Values
 const U_REP : Char = '�'
 
-fn decode(Bytes, encoding~ : Encoding) -> String!DecodingError
+fn decode(Bytes, encoding~ : Encoding) -> @string.StringView!DecodingError
 
-fn decode_lossy(Bytes, encoding~ : Encoding) -> String
+fn decode_lossy(Bytes, encoding~ : Encoding) -> @string.StringView
 
 fn decode_lossy_to(Bytes, StringBuilder, encoding~ : Encoding) -> Unit
 
 fn decode_to(Bytes, StringBuilder, encoding~ : Encoding) -> Unit!
 
-fn encode(String, encoding~ : Encoding) -> Bytes
+fn encode[Encode : Encode](Encode, encoding~ : Encoding) -> Bytes
 
-fn encode_to(String, @buffer.T, encoding~ : Encoding) -> Unit
+fn encode_to[Encode : Encode](Encode, @buffer.T, encoding~ : Encoding) -> Unit
 
 // Types and methods
 type Decoder
 impl Decoder {
-  decode(Self, Bytes, stream~ : Bool = ..) -> String!DecodingError
+  decode(Self, Bytes, stream~ : Bool = ..) -> @string.StringView!DecodingError
   decode_to(Self, Bytes, StringBuilder, stream~ : Bool = ..) -> Unit!DecodingError
 }
 
@@ -42,9 +43,11 @@ pub(all) enum Encoding {
 
 // Traits
 pub trait Encode {
+  size_hint(Self, encoding~ : Encoding) -> Int
   encode(Self, encoding~ : Encoding) -> Bytes
   encode_to(Self, @buffer.T, encoding~ : Encoding) -> Unit
 }
 impl Encode for Char
 impl Encode for String
+impl Encode for @string.StringView
 

@@ -102,12 +102,12 @@ test "streaming decoding UTF16LE ASCII" {
 
   // check accumulator
   let decoder = decoder(UTF16LE)
-  let mut acc = ""
+  let acc = StringBuilder::new()
   for chunk in ascii.to_bytes().to_array().chunks(7) {
-    acc += decoder.consume!(from_array(chunk))
+    acc.write_string(decoder.consume!(from_array(chunk)).to_string())
   }
   assert_true!(decoder.finish!().is_empty())
-  assert_eq!(acc, ascii)
+  assert_eq!(acc.to_string(), ascii)
 }
 
 ///|
@@ -156,12 +156,12 @@ test "streaming decoding UTF8 Emoji" {
 
   // check accumulator
   let decoder = decoder(UTF8)
-  let mut acc = ""
+  let acc = StringBuilder::new()
   for chunk in art_bytes.to_array().chunks(7) {
-    acc += decoder.consume!(from_array(chunk))
+    acc.write_string(decoder.consume!(from_array(chunk)).to_string())
   }
   assert_true!(decoder.finish!().is_empty())
-  assert_eq!(acc, art)
+  assert_eq!(acc.to_string(), art)
 }
 
 ///|
@@ -214,12 +214,12 @@ test "streaming decoding UTF16BE Tao71" {
 
   // check accumulator
   let decoder = decoder(UTF16BE)
-  let mut acc = ""
+  let acc = StringBuilder::new()
   for chunk in tao71_bytes.to_array().chunks(7) {
-    acc += decoder.consume!(from_array(chunk))
+    acc.write_string(decoder.consume!(from_array(chunk)).to_string())
   }
   assert_true!(decoder.finish!().is_empty())
-  assert_eq!(acc, tao71)
+  assert_eq!(acc.to_string(), tao71)
 }
 
 // In one go
@@ -568,7 +568,7 @@ test "decoding UTF8 encoded data with UTF16BE" {
   let chars = decoder.decode!(buf.to_bytes())
   // NOTE: Happens to be legal UTF16BE
   inspect!(
-    chars.to_array(),
+    chars.iter().collect(),
     content="['', '釦', '궥', '', '较', '', '룦', '뎳', '', '辊']",
   )
 }
@@ -602,7 +602,7 @@ test "decoding UTF16LE encoded data with UTF16BE" {
   let chars = decoder.decode!(buf.to_bytes())
   // NOTE: Happens to be legal UTF16BE
   inspect!(
-    chars.to_array(),
+    chars.iter().collect(),
     content="['톍', '敫', '㳘', '쏟', '㡮', '', '㳘', '쫟']",
   )
 }
@@ -636,7 +636,7 @@ test "decoding UTF16BE encoded data with UTF16LE" {
   let chars = decoder.decode!(buf.to_bytes())
   // NOTE: Happens to be legal UTF16LE
   inspect!(
-    chars.to_array(),
+    chars.iter().collect(),
     content="['톍', '敫', '㳘', '쏟', '㡮', '', '㳘', '쫟']",
   )
 }
@@ -669,7 +669,7 @@ test "lossy decoding UTF16LE encoded data with UTF8" {
   let decoder = decoder(UTF8)
   let chars = decoder.decode_lossy(buf.to_bytes())
   inspect!(
-    chars.to_array(),
+    chars.iter().collect(),
     content="['э', 'e', 'k', '<', '�', '�', 'n', '�', '�']",
   )
 }

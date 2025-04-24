@@ -30,13 +30,8 @@
 /// let src = "Hello, World!"
 /// let encoded_bytes = encode(UTF8, src)
 /// ```
-pub fn encode(src : String, encoding~ : Encoding) -> Bytes {
-  if encoding is UTF16LE {
-    return src.to_bytes()
-  }
-  let new_buf = @buffer.new(size_hint=src.length() * 4)
-  encode_to(src, new_buf, encoding~)
-  new_buf.to_bytes()
+pub fn encode[Encode : Encode](string : Encode, encoding~ : Encoding) -> Bytes {
+  Encode::encode(string, encoding~)
 }
 
 ///|
@@ -59,41 +54,33 @@ pub fn encode(src : String, encoding~ : Encoding) -> Bytes {
 ///   inspect!(buf.to_string(), content="Hello, world")
 /// }
 /// ```
-pub fn encode_to(
-  src : String,
+pub fn encode_to[Encode : Encode](
+  src : Encode,
   buffer : @buffer.T,
   encoding~ : Encoding
 ) -> Unit {
-  match encoding {
-    UTF8 =>
-      for char in src {
-        write_utf8_char(buffer, char)
-      }
-    UTF16BE =>
-      for char in src {
-        write_utf16be_char(buffer, char)
-      }
-    UTF16LE => buffer.write_string(src)
-  }
+  Encode::encode_to(src, buffer, encoding~)
 }
 
 ///|
 pub trait Encode {
-  encode(Self, encoding~ : Encoding) -> Bytes
+  size_hint(Self, encoding~ : Encoding) -> Int
+  encode(Self, encoding~ : Encoding) -> Bytes = _
   encode_to(Self, @buffer.T, encoding~ : Encoding) -> Unit
 }
 
 ///|
-/// Converts a Char to UTF-8 bytes.
-///
-/// Note that this function incurs allocation overhead
-/// due to the intermediate creation of new buffers.
-pub impl Encode for Char with encode(value : Char, encoding~ : Encoding) -> Bytes {
-  match encoding {
-    UTF8 => to_utf8_bytes(value)
-    UTF16LE => to_utf16le_bytes(value)
-    UTF16BE => to_utf16be_bytes(value)
-  }
+impl Encode with encode(value : Self, encoding~ : Encoding) -> Bytes {
+  let buffer = @buffer.new(size_hint=Encode::size_hint(value, encoding~))
+  Encode::encode_to(value, buffer, encoding~)
+  buffer.contents()
+}
+
+///|
+pub impl Encode for Char with size_hint(value : Char, encoding~ : Encoding) -> Int {
+  ignore(value)
+  ignore(encoding)
+  4
 }
 
 ///|
@@ -110,8 +97,9 @@ pub impl Encode for Char with encode_to(
 }
 
 ///|
-pub impl Encode for String with encode(value : String, encoding~ : Encoding) -> Bytes {
-  encode(value, encoding~)
+pub impl Encode for String with size_hint(value : String, encoding~ : Encoding) -> Int {
+  ignore(encoding)
+  value.length() * 4
 }
 
 ///|
@@ -120,36 +108,51 @@ pub impl Encode for String with encode_to(
   buffer : @buffer.T,
   encoding~ : Encoding
 ) -> Unit {
-  encode_to(value, buffer, encoding~)
+  match encoding {
+    UTF8 =>
+      for char in value {
+        write_utf8_char(buffer, char)
+      }
+    UTF16BE =>
+      for char in value {
+        write_utf16be_char(buffer, char)
+      }
+    UTF16LE =>
+      for char in value {
+        write_utf16le_char(buffer, char)
+      }
+  }
 }
 
 ///|
-fn to_utf8_bytes(value : Char) -> Bytes {
-  let buf = @buffer.new(size_hint=4)
-  write_utf8_char(buf, value)
-  buf.to_bytes()
+pub impl Encode for @string.View with size_hint(
+  value : @string.View,
+  encoding~ : Encoding
+) -> Int {
+  ignore(encoding)
+  value.length() * 4
 }
 
 ///|
-/// Converts a Char to UTF-16LE bytes.
-///
-/// Note that this function incurs allocation overhead
-/// due to the intermediate creation of new buffers.
-fn to_utf16le_bytes(value : Char) -> Bytes {
-  let buf = @buffer.new(size_hint=4)
-  write_utf16le_char(buf, value)
-  buf.to_bytes()
-}
-
-///|
-/// Converts a Char to UTF-16BE bytes.
-///
-/// Note that this function incurs allocation overhead
-/// due to the intermediate creation of new buffers.
-fn to_utf16be_bytes(value : Char) -> Bytes {
-  let buf = @buffer.new(size_hint=4)
-  write_utf16be_char(buf, value)
-  buf.to_bytes()
+pub impl Encode for @string.View with encode_to(
+  value : @string.View,
+  buffer : @buffer.T,
+  encoding~ : Encoding
+) -> Unit {
+  match encoding {
+    UTF8 =>
+      for char in value {
+        write_utf8_char(buffer, char)
+      }
+    UTF16BE =>
+      for char in value {
+        write_utf16be_char(buffer, char)
+      }
+    UTF16LE =>
+      for char in value {
+        write_utf16le_char(buffer, char)
+      }
+  }
 }
 
 ///|
