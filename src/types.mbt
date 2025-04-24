@@ -21,7 +21,6 @@ pub type! TruncatedError Bytes derive(Show)
 ///|
 pub(all) enum Encoding {
   UTF8
-  UTF16 // alias for UTF16LE
   UTF16LE
   UTF16BE
 }

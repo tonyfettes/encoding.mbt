@@ -60,7 +60,6 @@ pub fn decoder(encoding : Encoding) -> Decoder {
   let t_need = 0
   let k = match encoding {
     UTF8 => decode_utf_8
-    UTF16 => decode_utf_16le
     UTF16LE => decode_utf_16le
     UTF16BE => decode_utf_16be
   }

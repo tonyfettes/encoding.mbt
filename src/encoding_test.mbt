@@ -15,7 +15,7 @@
 ///|
 test "encoding String to UTF8" {
   let src = "你好👀"
-  let bytes = @encoding.encode(UTF8, src)
+  let bytes = @encoding.encode(encoding=UTF8, src)
   inspect!(
     bytes,
     content=
@@ -40,7 +40,7 @@ test "encode_to/UTF8" {
 ///|
 test "encoding String to UTF16 (alias of UTF16LE)" {
   let src = "LISP programmers know the value of everything"
-  let bytes = @encoding.encode(UTF16, src)
+  let bytes = @encoding.encode(encoding=UTF16LE, src)
   inspect!(
     bytes,
     content=
@@ -53,7 +53,7 @@ test "encoding String to UTF16 (alias of UTF16LE)" {
 test "encode_to/UTF16" {
   let src = "LISP programmers know the value of everything"
   let buf = @buffer.new(size_hint=10)
-  @encoding.encode_to(src, buf, encoding=UTF16)
+  @encoding.encode_to(src, buf, encoding=UTF16LE)
   inspect!(
     buf.to_bytes(),
     content=
@@ -65,7 +65,7 @@ test "encode_to/UTF16" {
 ///|
 test "encoding String to UTF16LE" {
   let src = "and the cost of nothing"
-  let bytes = @encoding.encode(UTF16LE, src)
+  let bytes = @encoding.encode(encoding=UTF16LE, src)
   inspect!(
     bytes,
     content=
@@ -90,7 +90,7 @@ test "encode_to/UTF16LE" {
 ///|
 test "encoding String to UTF16BE" {
   let src = "λf.(λx.f(x x))(λx.f(x x))"
-  let bytes = @encoding.encode(UTF16BE, src)
+  let bytes = @encoding.encode(encoding=UTF16BE, src)
   inspect!(
     bytes,
     content=

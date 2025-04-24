@@ -129,7 +129,7 @@ test "streaming decoding UTF8 Emoji" {
     #| ✋👕🌂
     #|   ‼️
     #|   👞👞
-  let art_bytes = @encoding.encode(UTF8, art)
+  let art_bytes = @encoding.encode(encoding=UTF8, art)
   let from_array = Bytes::from_array
   let decoder = @encoding.decoder(UTF8)
   let buf = @buffer.new(size_hint=art_bytes.length())
@@ -173,7 +173,7 @@ test "streaming decoding UTF8 Emoji" {
 ///|
 test "streaming decoding UTF16BE Tao71" {
   let tao71 = "知不知，尚矣；不知知，病也。圣人不病，以其病病，夫惟病病，是以不病。"
-  let tao71_bytes = @encoding.encode(UTF16BE, tao71)
+  let tao71_bytes = @encoding.encode(encoding=UTF16BE, tao71)
   let from_array = Bytes::from_array
   let decoder = @encoding.decoder(UTF16BE)
   let buf = @buffer.new(size_hint=tao71_bytes.length())
@@ -289,7 +289,7 @@ test "decoding UTF16 (alias for UTF16LE) encoded data to String" {
     buf.to_bytes(),
     b"\x65\x18\x20\x18\x73\x18\x64\x18\x73\x18\x36\x18\x20\x18",
   )
-  let decoder = @encoding.decoder(UTF16)
+  let decoder = @encoding.decoder(UTF16LE)
   let chars = decoder.decode!(buf.to_bytes())
   inspect!(chars, content="ᡥᠠᡳᡤᡳᠶᠠ")
 }
@@ -304,7 +304,7 @@ test "decode_to/UTF16" {
   buf.write_bytes(b"\x73\x18")
   buf.write_bytes(b"\x36\x18")
   buf.write_bytes(b"\x20\x18")
-  let decoder = @encoding.decoder(UTF16)
+  let decoder = @encoding.decoder(UTF16LE)
   let acc = StringBuilder::new()
   decoder.decode_to!(buf.to_bytes(), acc)
   inspect!(acc.to_string(), content="ᡥᠠᡳᡤᡳᠶᠠ")
@@ -711,7 +711,7 @@ test "decode_lossy_to/UTF16LE" {
 test "lossy decoding UTF16 (alias for UTF16LE) incorrectly encoded data to String" {
   let src = b"\x00\xD8"
   assert_eq!(src, b"\x00\xd8")
-  let decoder = @encoding.decoder(UTF16)
+  let decoder = @encoding.decoder(UTF16LE)
   let chars = decoder.decode_lossy(src, stream=false)
   inspect!(chars, content="�")
   assert_eq!(chars.length(), 1)
@@ -722,7 +722,7 @@ test "lossy decoding UTF16 (alias for UTF16LE) incorrectly encoded data to Strin
 test "decode_lossy_to/UTF16" {
   let src = b"\x00\xD8"
   assert_eq!(src, b"\x00\xd8")
-  let decoder = @encoding.decoder(UTF16)
+  let decoder = @encoding.decoder(UTF16LE)
   let acc = StringBuilder::new()
   decoder.decode_lossy_to(src, acc)
   inspect!(acc.to_string(), content="�")
