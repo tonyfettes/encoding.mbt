@@ -53,6 +53,9 @@ pub(all) enum Encoding {
 // Type aliases
 
 // Traits
-trait Encode
+pub trait Encode {
+  encode(Self, encoding~ : Encoding) -> Bytes
+}
 impl Encode for Char
+impl Encode for String
 
