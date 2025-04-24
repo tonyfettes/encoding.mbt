@@ -260,7 +260,7 @@ fn finish!(self : Decoder) -> String {
 /// # Returns
 ///
 /// A `String` representing the decoded content from the input byte sequence, with any invalid sequences replaced by the Unicode Replacement Character (`U+FFFD`).
-pub fn decode_lossy(
+fn Decoder::decode_lossy(
   self : Decoder,
   input : Bytes,
   stream~ : Bool = false
@@ -297,7 +297,12 @@ pub fn decode_lossy(
 }
 
 ///|
-pub fn Decoder::decode_lossy_to(
+pub fn decode_lossy(input : Bytes, encoding~ : Encoding) -> String {
+  decoder(encoding).decode_lossy(input)
+}
+
+///|
+fn Decoder::decode_lossy_to(
   self : Decoder,
   input : Bytes,
   output : StringBuilder,
@@ -326,6 +331,15 @@ pub fn Decoder::decode_lossy_to(
     End => return
     Refill(_) => if stream { return } else { continue self.decode_() }
   }
+}
+
+///|
+pub fn decode_lossy_to(
+  input : Bytes,
+  output : StringBuilder,
+  encoding~ : Encoding
+) -> Unit {
+  decoder(encoding).decode_lossy_to(input, output)
 }
 
 ///|

@@ -9,7 +9,9 @@ const U_REP : Char = '�'
 
 fn decode(Bytes, encoding~ : Encoding) -> String!DecodingError
 
-fn decode_lossy(Decoder, Bytes, stream~ : Bool = ..) -> String
+fn decode_lossy(Bytes, encoding~ : Encoding) -> String
+
+fn decode_lossy_to(Bytes, StringBuilder, encoding~ : Encoding) -> Unit
 
 fn decode_to(Bytes, StringBuilder, encoding~ : Encoding) -> Unit!
 
@@ -21,8 +23,6 @@ fn encode_to(String, @buffer.T, encoding~ : Encoding) -> Unit
 type Decoder
 impl Decoder {
   decode(Self, Bytes, stream~ : Bool = ..) -> String!DecodingError
-  decode_lossy(Self, Bytes, stream~ : Bool = ..) -> String
-  decode_lossy_to(Self, Bytes, StringBuilder, stream~ : Bool = ..) -> Unit
   decode_to(Self, Bytes, StringBuilder, stream~ : Bool = ..) -> Unit!DecodingError
 }
 
