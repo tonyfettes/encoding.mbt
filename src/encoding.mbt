@@ -30,22 +30,12 @@
 /// let src = "Hello, World!"
 /// let encoded_bytes = encode(UTF8, src)
 /// ```
-pub fn encode(encoding~ : Encoding, src : String) -> Bytes {
-  // NOTE: special case: MoonBit String are already valid UTF16(LE) bytes
-  match encoding {
-    UTF16LE => return src.to_bytes()
-    _ => ()
+pub fn encode(src : String, encoding~ : Encoding) -> Bytes {
+  if encoding is UTF16LE {
+    return src.to_bytes()
   }
   let new_buf = @buffer.new(size_hint=src.length() * 4)
-  let write = match encoding {
-    UTF8 => write_utf8_char
-    UTF16BE => write_utf16be_char
-    _ => abort("unreachable")
-  }
-  for char in src {
-    // SAFETY: Assume String are always valid UTF16LE
-    write(new_buf, char)
-  }
+  encode_to(src, new_buf, encoding~)
   new_buf.to_bytes()
 }
 
