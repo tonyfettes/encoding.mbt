@@ -1,6 +1,8 @@
-package moonbitlang/x/encoding
+package "tonyfettes/encoding"
 
-alias @moonbitlang/core/buffer as @buffer
+import(
+  "moonbitlang/core/buffer"
+)
 
 // Values
 const U_REP : Char = '�'
@@ -15,7 +17,7 @@ fn decode_to(Bytes, StringBuilder, encoding~ : Encoding) -> Unit!
 
 fn decoder(Encoding) -> Decoder
 
-fn encode(Encoding, String) -> Bytes
+fn encode(String, encoding~ : Encoding) -> Bytes
 
 fn encode_to(String, @buffer.T, encoding~ : Encoding) -> Unit
 
@@ -56,14 +58,15 @@ impl Decoder {
 
 pub(all) enum Encoding {
   UTF8
-  UTF16
   UTF16LE
   UTF16BE
 }
 
 pub type! MalformedError Bytes
+impl Show for MalformedError
 
 pub type! TruncatedError Bytes
+impl Show for TruncatedError
 
 // Type aliases
 
