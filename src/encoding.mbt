@@ -104,7 +104,7 @@ pub fn to_utf16_bytes(value : Char) -> Bytes {
 ///
 /// Note that this function incurs allocation overhead
 /// due to the intermediate creation of new buffers.
-pub fn to_utf16le_bytes(value : Char) -> Bytes {
+fn to_utf16le_bytes(value : Char) -> Bytes {
   let buf = @buffer.new(size_hint=4)
   write_utf16le_char(buf, value)
   buf.to_bytes()
@@ -115,7 +115,7 @@ pub fn to_utf16le_bytes(value : Char) -> Bytes {
 ///
 /// Note that this function incurs allocation overhead
 /// due to the intermediate creation of new buffers.
-pub fn to_utf16be_bytes(value : Char) -> Bytes {
+fn to_utf16be_bytes(value : Char) -> Bytes {
   let buf = @buffer.new(size_hint=4)
   write_utf16be_char(buf, value)
   buf.to_bytes()

@@ -13,10 +13,10 @@
 // limitations under the License.
 
 ///|
-pub type! MalformedError Bytes derive(Show)
-
-///|
-pub type! TruncatedError Bytes derive(Show)
+pub type! DecodingError {
+  Malformed(Bytes)
+  Truncated(Bytes)
+} derive(Show)
 
 ///|
 pub(all) enum Encoding {

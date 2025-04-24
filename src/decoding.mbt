@@ -52,7 +52,7 @@ let utf_8_len = [
 /// inspect!(decoder.consume!(inputs[1]), content="")
 /// inspect!(decoder.consume!(inputs[2]), content="🐰")
 /// assert_true!(decoder.finish!().is_empty())
-pub fn decoder(encoding : Encoding) -> Decoder {
+fn decoder(encoding : Encoding) -> Decoder {
   let i = FixedArray::default()
   let i_pos = 0
   let t = FixedArray::make(4, Byte::default())
@@ -96,7 +96,11 @@ pub fn decoder(encoding : Encoding) -> Decoder {
 /// inspect!(decoder.decode!(inputs[1], stream=true), content="")
 /// inspect!(decoder.decode!(inputs[2], stream=false), content="🐰")
 /// ```
-pub fn decode!(self : Decoder, input : Bytes, stream~ : Bool = false) -> String {
+pub fn Decoder::decode(
+  self : Decoder,
+  input : Bytes,
+  stream~ : Bool = false
+) -> String!DecodingError {
   if input.length() > 0 {
     self.i_cont(input)
   }
@@ -117,16 +121,21 @@ pub fn decode!(self : Decoder, input : Bytes, stream~ : Bool = false) -> String 
       if stream && self.t_need > 0 {
         builder.to_string()
       } else {
-        raise MalformedError(bs)
+        raise DecodingError::Malformed(bs)
       }
     End => builder.to_string()
     Refill(t) =>
       if stream {
         builder.to_string()
       } else {
-        raise TruncatedError(t)
+        raise DecodingError::Truncated(t)
       }
   }
+}
+
+///|
+pub fn decode(bytes : Bytes, encoding~ : Encoding) -> String!DecodingError {
+  decoder(encoding).decode!(bytes)
 }
 
 ///|
@@ -159,7 +168,7 @@ pub fn Decoder::decode_to(
   input : Bytes,
   output : StringBuilder,
   stream~ : Bool = false
-) -> Unit! {
+) -> Unit!DecodingError {
   if input.length() > 0 {
     self.i_cont(input)
   }
@@ -176,10 +185,10 @@ pub fn Decoder::decode_to(
       if stream && self.t_need > 0 {
         return
       } else {
-        raise MalformedError(bs)
+        raise DecodingError::Malformed(bs)
       }
     End => return
-    Refill(t) => if stream { return } else { raise TruncatedError(t) }
+    Refill(t) => if stream { return } else { raise DecodingError::Truncated(t) }
   }
 }
 
@@ -210,7 +219,7 @@ pub fn decode_to(
 ///
 /// `MalformedError`: when the byte sequence is not properly formatted according to the specified encoding.
 /// `TruncatedError`: when the byte sequence ends prematurely, implying that more data is expected for complete decoding.
-pub fn consume!(self : Decoder, input : Bytes) -> String {
+fn consume!(self : Decoder, input : Bytes) -> String {
   self.decode!(input, stream=true)
 }
 
@@ -232,7 +241,7 @@ pub fn consume!(self : Decoder, input : Bytes) -> String {
 ///
 /// `MalformedError`: This error is raised if the remaining byte sequence is not properly formatted according to the specified encoding.
 /// `TruncatedError`: This error is raised if the remaining byte sequence ends prematurely, implying that more data was expected for complete decoding.
-pub fn finish!(self : Decoder) -> String {
+fn finish!(self : Decoder) -> String {
   self.decode!(b"", stream=false)
 }
 
@@ -332,7 +341,7 @@ pub fn Decoder::decode_lossy_to(
 /// # Returns
 ///
 /// A `String` representing the partially decoded content from the input byte sequence, with any invalid sequences replaced by the Unicode Replacement Character (`U+FFFD`), as more bytes are expected.
-pub fn lossy_consume(self : Decoder, input : Bytes) -> String {
+fn lossy_consume(self : Decoder, input : Bytes) -> String {
   self.decode_lossy(input, stream=true)
 }
 
@@ -349,7 +358,7 @@ pub fn lossy_consume(self : Decoder, input : Bytes) -> String {
 /// # Returns
 ///
 /// A `String` representing the final part of the decoded content, with any invalid sequences replaced by the Unicode Replacement Character (`U+FFFD`), after all byte sequences have been processed.
-pub fn lossy_finish(self : Decoder) -> String {
+fn lossy_finish(self : Decoder) -> String {
   self.decode_lossy(b"", stream=false)
 }
 
