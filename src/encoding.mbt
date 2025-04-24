@@ -78,11 +78,29 @@ pub fn encode_to(
 }
 
 ///|
+pub trait Encode {
+  encode(Self, encoding~ : Encoding) -> Bytes
+}
+
+///|
 /// Converts a Char to UTF-8 bytes.
 ///
 /// Note that this function incurs allocation overhead
 /// due to the intermediate creation of new buffers.
-pub fn to_utf8_bytes(value : Char) -> Bytes {
+pub impl Encode for Char with encode(value : Char, encoding~ : Encoding) -> Bytes {
+  match encoding {
+    UTF8 => to_utf8_bytes(value)
+    UTF16LE => to_utf16le_bytes(value)
+    UTF16BE => to_utf16be_bytes(value)
+  }
+}
+
+pub impl Encode for String with encode(value : String, encoding~ : Encoding) -> Bytes {
+  encode(value, encoding~)
+}
+
+///|
+fn to_utf8_bytes(value : Char) -> Bytes {
   let buf = @buffer.new(size_hint=4)
   write_utf8_char(buf, value)
   buf.to_bytes()
@@ -91,20 +109,9 @@ pub fn to_utf8_bytes(value : Char) -> Bytes {
 ///|
 /// Converts a Char to UTF-16LE bytes.
 ///
-/// Alias for `to_utf16le_bytes`.
-///
 /// Note that this function incurs allocation overhead
 /// due to the intermediate creation of new buffers.
-pub fn to_utf16_bytes(value : Char) -> Bytes {
-  to_utf16le_bytes(value)
-}
-
-///|
-/// Converts a Char to UTF-16LE bytes.
-///
-/// Note that this function incurs allocation overhead
-/// due to the intermediate creation of new buffers.
-fn to_utf16le_bytes(value : Char) -> Bytes {
+pub fn to_utf16le_bytes(value : Char) -> Bytes {
   let buf = @buffer.new(size_hint=4)
   write_utf16le_char(buf, value)
   buf.to_bytes()
@@ -115,7 +122,7 @@ fn to_utf16le_bytes(value : Char) -> Bytes {
 ///
 /// Note that this function incurs allocation overhead
 /// due to the intermediate creation of new buffers.
-fn to_utf16be_bytes(value : Char) -> Bytes {
+pub fn to_utf16be_bytes(value : Char) -> Bytes {
   let buf = @buffer.new(size_hint=4)
   write_utf16be_char(buf, value)
   buf.to_bytes()

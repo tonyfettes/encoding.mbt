@@ -17,13 +17,9 @@ fn encode(String, encoding~ : Encoding) -> Bytes
 
 fn encode_to(String, @buffer.T, encoding~ : Encoding) -> Unit
 
-fn to_utf16_bytes(Char) -> Bytes
-
 fn to_utf16be_bytes(Char) -> Bytes
 
 fn to_utf16le_bytes(Char) -> Bytes
-
-fn to_utf8_bytes(Char) -> Bytes
 
 fn write_utf16_char(@buffer.T, Char) -> Unit
 
@@ -57,4 +53,6 @@ pub(all) enum Encoding {
 // Type aliases
 
 // Traits
+trait Encode
+impl Encode for Char
 
