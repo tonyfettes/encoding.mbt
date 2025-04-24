@@ -80,6 +80,7 @@ pub fn encode_to(
 ///|
 pub trait Encode {
   encode(Self, encoding~ : Encoding) -> Bytes
+  encode_to(Self, @buffer.T, encoding~ : Encoding) -> Unit
 }
 
 ///|
@@ -95,8 +96,31 @@ pub impl Encode for Char with encode(value : Char, encoding~ : Encoding) -> Byte
   }
 }
 
+///|
+pub impl Encode for Char with encode_to(
+  value : Char,
+  buffer : @buffer.T,
+  encoding~ : Encoding
+) -> Unit {
+  match encoding {
+    UTF8 => write_utf8_char(buffer, value)
+    UTF16LE => write_utf16le_char(buffer, value)
+    UTF16BE => write_utf16be_char(buffer, value)
+  }
+}
+
+///|
 pub impl Encode for String with encode(value : String, encoding~ : Encoding) -> Bytes {
   encode(value, encoding~)
+}
+
+///|
+pub impl Encode for String with encode_to(
+  value : String,
+  buffer : @buffer.T,
+  encoding~ : Encoding
+) -> Unit {
+  encode_to(value, buffer, encoding~)
 }
 
 ///|
