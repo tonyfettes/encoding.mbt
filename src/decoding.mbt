@@ -98,7 +98,7 @@ fn decoder(encoding : Encoding) -> Decoder {
 /// ```
 pub fn Decoder::decode(
   self : Decoder,
-  input : Bytes,
+  input : @bytes.View,
   stream~ : Bool = false
 ) -> @string.View!DecodingError {
   if input.length() > 0 {
@@ -135,7 +135,7 @@ pub fn Decoder::decode(
 
 ///|
 pub fn decode(
-  bytes : Bytes,
+  bytes : @bytes.View,
   encoding~ : Encoding
 ) -> @string.View!DecodingError {
   decoder(encoding).decode!(bytes)
@@ -380,7 +380,7 @@ fn lossy_finish(self : Decoder) -> @string.View {
 }
 
 ///|
-fn i_cont(self : Decoder, input : Bytes) -> Unit {
+fn i_cont(self : Decoder, input : @bytes.View) -> Unit {
   // concat `input` to `i`, drop decoded `i`
   let i_rem = @math.maximum(self.i_rem(), 0)
   let new_len = i_rem + input.length()
@@ -391,7 +391,7 @@ fn i_cont(self : Decoder, input : Bytes) -> Unit {
     self.i.blit_to(new_i, len=i_rem, src_offset=self.i_pos)
   }
   // copy all `input` into new `i`, starting at the remainder of the old `i`
-  new_i.blit_from_bytes(i_rem, input, 0, input.length())
+  new_i.blit_from_bytesview(i_rem, input)
   self.i = new_i
   // reset position to starting position
   self.i_pos = 0
