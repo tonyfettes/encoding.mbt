@@ -2,13 +2,14 @@ package "tonyfettes/encoding"
 
 import(
   "moonbitlang/core/buffer"
+  "moonbitlang/core/bytes"
   "moonbitlang/core/string"
 )
 
 // Values
 const U_REP : Char = '�'
 
-fn decode(Bytes, encoding~ : Encoding) -> @string.StringView!DecodingError
+fn decode(@bytes.View, encoding~ : Encoding) -> @string.StringView!DecodingError
 
 fn decode_lossy(Bytes, encoding~ : Encoding) -> @string.StringView
 
@@ -23,7 +24,7 @@ fn encode_to[Encode : Encode](Encode, @buffer.T, encoding~ : Encoding) -> Unit
 // Types and methods
 type Decoder
 impl Decoder {
-  decode(Self, Bytes, stream~ : Bool = ..) -> @string.StringView!DecodingError
+  decode(Self, @bytes.View, stream~ : Bool = ..) -> @string.StringView!DecodingError
   decode_to(Self, Bytes, StringBuilder, stream~ : Bool = ..) -> Unit!DecodingError
 }
 
