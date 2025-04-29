@@ -168,7 +168,7 @@ pub fn decode(
 /// ```
 pub fn Decoder::decode_to(
   self : Decoder,
-  input : Bytes,
+  input : @bytes.View,
   output : StringBuilder,
   stream~ : Bool = false
 ) -> Unit!DecodingError {
@@ -197,7 +197,7 @@ pub fn Decoder::decode_to(
 
 ///|
 pub fn decode_to(
-  input : Bytes,
+  input : @bytes.View,
   output : StringBuilder,
   encoding~ : Encoding
 ) -> Unit! {
@@ -222,7 +222,7 @@ pub fn decode_to(
 ///
 /// `MalformedError`: when the byte sequence is not properly formatted according to the specified encoding.
 /// `TruncatedError`: when the byte sequence ends prematurely, implying that more data is expected for complete decoding.
-fn consume!(self : Decoder, input : Bytes) -> @string.View {
+fn consume!(self : Decoder, input : @bytes.View) -> @string.View {
   self.decode!(input, stream=true)
 }
 
@@ -265,7 +265,7 @@ fn finish!(self : Decoder) -> @string.View {
 /// A `String` representing the decoded content from the input byte sequence, with any invalid sequences replaced by the Unicode Replacement Character (`U+FFFD`).
 fn Decoder::decode_lossy(
   self : Decoder,
-  input : Bytes,
+  input : @bytes.View,
   stream~ : Bool = false
 ) -> @string.View {
   if input.length() > 0 {
@@ -300,14 +300,14 @@ fn Decoder::decode_lossy(
 }
 
 ///|
-pub fn decode_lossy(input : Bytes, encoding~ : Encoding) -> @string.View {
+pub fn decode_lossy(input : @bytes.View, encoding~ : Encoding) -> @string.View {
   decoder(encoding).decode_lossy(input)
 }
 
 ///|
 fn Decoder::decode_lossy_to(
   self : Decoder,
-  input : Bytes,
+  input : @bytes.View,
   output : StringBuilder,
   stream~ : Bool = false
 ) -> Unit {
@@ -338,7 +338,7 @@ fn Decoder::decode_lossy_to(
 
 ///|
 pub fn decode_lossy_to(
-  input : Bytes,
+  input : @bytes.View,
   output : StringBuilder,
   encoding~ : Encoding
 ) -> Unit {
@@ -358,7 +358,7 @@ pub fn decode_lossy_to(
 /// # Returns
 ///
 /// A `String` representing the partially decoded content from the input byte sequence, with any invalid sequences replaced by the Unicode Replacement Character (`U+FFFD`), as more bytes are expected.
-fn lossy_consume(self : Decoder, input : Bytes) -> @string.View {
+fn lossy_consume(self : Decoder, input : @bytes.View) -> @string.View {
   self.decode_lossy(input, stream=true)
 }
 
