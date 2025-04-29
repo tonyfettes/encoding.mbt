@@ -695,7 +695,7 @@ test "lossy decoding UTF16LE incorrectly encoded data to String" {
   let chars = decoder.decode_lossy(src, stream=false)
   inspect!(chars, content="�")
   assert_eq!(chars.length(), 1)
-  assert_eq!(chars[0], U_REP)
+  assert_eq!(chars.iter().nth(0).unwrap(), U_REP)
 }
 
 ///|
@@ -716,7 +716,7 @@ test "lossy decoding UTF16 (alias for UTF16LE) incorrectly encoded data to Strin
   let chars = decoder.decode_lossy(src, stream=false)
   inspect!(chars, content="�")
   assert_eq!(chars.length(), 1)
-  assert_eq!(chars[0], U_REP)
+  assert_eq!(chars.iter().nth(0).unwrap(), U_REP)
 }
 
 ///|
@@ -737,7 +737,7 @@ test "lossy decoding UTF16BE incorrectly encoded data to String" {
   let chars = decoder.decode_lossy(src, stream=false)
   inspect!(chars, content="�")
   assert_eq!(chars.length(), 1)
-  assert_eq!(chars[0], U_REP)
+  assert_eq!(chars.iter().nth(0).unwrap(), U_REP)
 }
 
 ///|
@@ -760,8 +760,8 @@ test "lossy decoding UTF16BE which is `HI+!LO`" {
   // NOTE(jinser): should decode as many characters as possible
   inspect!(chars, content="�H") // ✅
   assert_eq!(chars.length(), 2)
-  assert_eq!(chars[0], U_REP)
-  assert_eq!(chars[1], 'H')
+  assert_eq!(chars.iter().nth(0).unwrap(), U_REP)
+  assert_eq!(chars.iter().nth(1).unwrap(), 'H')
 }
 
 ///|
@@ -786,7 +786,7 @@ test "lossy decoding UTF8 incorrectly encoded data to String" {
   let decoder = decoder(UTF8)
   let chars = decoder.decode_lossy(buf.to_bytes())
   inspect!(chars, content="�")
-  assert_eq!(chars[0], U_REP)
+  assert_eq!(chars.iter().nth(0).unwrap(), U_REP)
 }
 
 ///|
