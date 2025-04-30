@@ -100,7 +100,7 @@ pub fn Decoder::decode(
   self : Decoder,
   input : @bytes.View,
   stream~ : Bool = false
-) -> @string.View!DecodingError {
+) -> String!DecodingError {
   if input.length() > 0 {
     self.i_cont(input)
   }
@@ -137,7 +137,7 @@ pub fn Decoder::decode(
 pub fn decode(
   bytes : @bytes.View,
   encoding~ : Encoding
-) -> @string.View!DecodingError {
+) -> String!DecodingError {
   decoder(encoding).decode!(bytes)
 }
 
@@ -267,7 +267,7 @@ fn Decoder::decode_lossy(
   self : Decoder,
   input : @bytes.View,
   stream~ : Bool = false
-) -> @string.View {
+) -> String {
   if input.length() > 0 {
     self.i_cont(input)
   }
@@ -300,7 +300,7 @@ fn Decoder::decode_lossy(
 }
 
 ///|
-pub fn decode_lossy(input : @bytes.View, encoding~ : Encoding) -> @string.View {
+pub fn decode_lossy(input : @bytes.View, encoding~ : Encoding) -> String {
   decoder(encoding).decode_lossy(input)
 }
 
