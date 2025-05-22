@@ -30,7 +30,7 @@
 /// let src = "Hello, World!"
 /// let encoded_bytes = encode(UTF8, src)
 /// ```
-pub fn encode[Encode : Encode](string : Encode, encoding~ : Encoding) -> Bytes {
+pub fn[Encode : Encode] encode(string : Encode, encoding~ : Encoding) -> Bytes {
   Encode::encode(string, encoding~)
 }
 
@@ -54,7 +54,7 @@ pub fn encode[Encode : Encode](string : Encode, encoding~ : Encoding) -> Bytes {
 ///   inspect!(buf.to_string(), content="Hello, world")
 /// }
 /// ```
-pub fn encode_to[Encode : Encode](
+pub fn[Encode : Encode] encode_to(
   src : Encode,
   buffer : @buffer.T,
   encoding~ : Encoding

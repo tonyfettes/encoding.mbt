@@ -404,7 +404,6 @@ test "decoding UTF16LE encoded data with UTF8" {
     chars,
     content=
       #|Err(Malformed(b"\xd8\xc3"))
-
     ,
   )
 }
@@ -422,7 +421,6 @@ test "decode_to/UTF16LE-UTF8/MalformedError" {
     decoder.decode_to?(buf.to_bytes(), acc),
     content=
       #|Err(Malformed(b"\xd8\xc3"))
-
     ,
   )
 }
@@ -443,7 +441,6 @@ test "decode_to/UTF16LE-UTF8/TruncatedError" {
     result,
     content=
       #|Err(Truncated(b"\xca\x00\x00\x00"))
-
     ,
   )
 }
@@ -530,7 +527,6 @@ test "decoding UTF16BE encoded data with UTF8" {
     chars,
     content=
       #|Err(Malformed(b"\x8d"))
-
     ,
   )
 }
@@ -548,7 +544,6 @@ test "decode_to/UTF16BE-UTF8" {
     decoder.decode_to?(buf.to_bytes(), acc),
     content=
       #|Err(Malformed(b"\x8d"))
-
     ,
   )
 }
