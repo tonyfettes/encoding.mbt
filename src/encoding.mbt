@@ -28,7 +28,9 @@
 ///
 /// ```moonbit
 /// let src = "Hello, World!"
-/// let encoded_bytes = encode(UTF8, src)
+/// inspect(encode(encoding=UTF8, src), content=
+///   #|b"\x48\x65\x6c\x6c\x6f\x2c\x20\x57\x6f\x72\x6c\x64\x21"
+/// )
 /// ```
 pub fn[Encode : Encode] encode(string : Encode, encoding~ : Encoding) -> Bytes {
   Encode::encode(string, encoding~)
@@ -47,12 +49,10 @@ pub fn[Encode : Encode] encode(string : Encode, encoding~ : Encoding) -> Bytes {
 /// Example:
 ///
 /// ```moonbit
-/// test "encode_to" {
-///   let buf = @buffer.new()
-///   let text = "Hello, world"
-///   @encoding.encode_to(text, buf, encoding=UTF16)
-///   inspect!(buf.to_string(), content="Hello, world")
-/// }
+/// let buf = @buffer.new()
+/// let text = "Hello, world"
+/// @encoding.encode_to(text, buf, encoding=UTF16LE)
+/// inspect(buf.to_string(), content="Hello, world")
 /// ```
 pub fn[Encode : Encode] encode_to(
   src : Encode,

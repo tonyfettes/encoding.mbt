@@ -13,7 +13,7 @@
 // limitations under the License.
 
 ///|
-pub type! DecodingError {
+pub suberror DecodingError {
   Malformed(Bytes)
   Truncated(Bytes)
 } derive(Show)
@@ -28,7 +28,7 @@ pub(all) enum Encoding {
 // Decoder
 
 ///|
-typealias Cont = (Decoder) -> Decode
+typealias (Decoder) -> Decode as Cont
 
 ///|
 struct Decoder {

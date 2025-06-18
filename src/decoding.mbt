@@ -92,15 +92,15 @@ pub fn decoder(encoding : Encoding) -> Decoder {
 /// ```moonbit
 /// let inputs = [b"abc", b"\xf0", b"\x9f\x90\xb0"] // UTF8(🐰) == <F09F 90B0>
 /// let decoder = @encoding.decoder(UTF8)
-/// inspect!(decoder.decode!(inputs[0], stream=true), content="abc")
-/// inspect!(decoder.decode!(inputs[1], stream=true), content="")
-/// inspect!(decoder.decode!(inputs[2], stream=false), content="🐰")
+/// inspect(decoder.decode(inputs[0], stream=true), content="abc")
+/// inspect(decoder.decode(inputs[1], stream=true), content="")
+/// inspect(decoder.decode(inputs[2], stream=false), content="🐰")
 /// ```
 pub fn Decoder::decode(
   self : Decoder,
   input : @bytes.View,
   stream~ : Bool = false
-) -> String!DecodingError {
+) -> String raise DecodingError {
   if input.length() > 0 {
     self.i_cont(input)
   }
@@ -137,8 +137,8 @@ pub fn Decoder::decode(
 pub fn decode(
   bytes : @bytes.View,
   encoding~ : Encoding
-) -> String!DecodingError {
-  decoder(encoding).decode!(bytes)
+) -> String raise DecodingError {
+  decoder(encoding).decode(bytes)
 }
 
 ///|
@@ -159,19 +159,17 @@ pub fn decode(
 /// Example:
 ///
 /// ```moonbit
-/// test "decode_to" {
-///   let decoder = decoder(UTF8)
-///   let buf = StringBuilder::new()
-///   decoder.decode_to!(b"Hello", buf)
-///   inspect!(buf.to_string(), content="Hello")
-/// }
+/// let decoder = decoder(UTF8)
+/// let buf = StringBuilder::new()
+/// decoder.decode_to(b"Hello", buf)
+/// inspect(buf.to_string(), content="Hello")
 /// ```
 pub fn Decoder::decode_to(
   self : Decoder,
   input : @bytes.View,
   output : StringBuilder,
   stream~ : Bool = false
-) -> Unit!DecodingError {
+) -> Unit raise DecodingError {
   if input.length() > 0 {
     self.i_cont(input)
   }
@@ -200,8 +198,8 @@ pub fn decode_to(
   input : @bytes.View,
   output : StringBuilder,
   encoding~ : Encoding
-) -> Unit! {
-  decoder(encoding).decode_to!(input, output)
+) -> Unit raise {
+  decoder(encoding).decode_to(input, output)
 }
 
 ///|
@@ -222,8 +220,8 @@ pub fn decode_to(
 ///
 /// `MalformedError`: when the byte sequence is not properly formatted according to the specified encoding.
 /// `TruncatedError`: when the byte sequence ends prematurely, implying that more data is expected for complete decoding.
-pub fn consume!(self : Decoder, input : @bytes.View) -> String {
-  self.decode!(input, stream=true)
+pub fn consume(self : Decoder, input : @bytes.View) -> String raise {
+  self.decode(input, stream=true)
 }
 
 ///|
@@ -244,8 +242,8 @@ pub fn consume!(self : Decoder, input : @bytes.View) -> String {
 ///
 /// `MalformedError`: This error is raised if the remaining byte sequence is not properly formatted according to the specified encoding.
 /// `TruncatedError`: This error is raised if the remaining byte sequence ends prematurely, implying that more data was expected for complete decoding.
-pub fn finish!(self : Decoder) -> String {
-  self.decode!(b"", stream=false)
+pub fn finish(self : Decoder) -> String raise {
+  self.decode(b"", stream=false)
 }
 
 ///|
@@ -463,35 +461,35 @@ fn t_fill(k : Cont, decoder : Decoder) -> Decode {
 // UTF8
 
 ///|
-fn decode_utf_8(self : Decoder) -> Decode {
-  let rem = self.i_rem()
+fn decode_utf_8(decoder : Decoder) -> Decode {
+  let rem = decoder.i_rem()
   if rem <= 0 {
     Decode::End
   } else {
-    let idx = self.i[self.i_pos].to_int()
+    let idx = decoder.i[decoder.i_pos].to_int()
     let need = utf_8_len[idx]
     if rem < need {
-      self.t_need(need)
-      t_fill(t_decode_utf_8, self)
+      decoder.t_need(need)
+      t_fill(t_decode_utf_8, decoder)
     } else {
-      let j = self.i_pos
+      let j = decoder.i_pos
       if need == 0 {
-        self.i_pos += 1
-        self.ret(decode_utf_8, malformed(self.i, j, 1))
+        decoder.i_pos += 1
+        decoder.ret(decode_utf_8, malformed(decoder.i, j, 1))
       } else {
-        self.i_pos += need
-        self.ret(decode_utf_8, r_utf_8(self.i, j, need))
+        decoder.i_pos += need
+        decoder.ret(decode_utf_8, r_utf_8(decoder.i, j, need))
       }
     }
   }
 }
 
 ///|
-fn t_decode_utf_8(self : Decoder) -> Decode {
-  if self.t_len < self.t_need {
-    self.ret(decode_utf_8, malformed(self.t, 0, self.t_len))
+fn t_decode_utf_8(decoder : Decoder) -> Decode {
+  if decoder.t_len < decoder.t_need {
+    decoder.ret(decode_utf_8, malformed(decoder.t, 0, decoder.t_len))
   } else {
-    self.ret(decode_utf_8, r_utf_8(self.t, 0, self.t_len))
+    decoder.ret(decode_utf_8, r_utf_8(decoder.t, 0, decoder.t_len))
   }
 }
 
@@ -506,7 +504,7 @@ fn r_utf_8(bytes : FixedArray[Byte], offset : Int, length : Int) -> Decode {
     2 => {
       let b0 = bytes[offset].to_int()
       let b1 = bytes[offset + 1].to_int()
-      if (b1 >> 6) != 0b10 {
+      if b1 >> 6 != 0b10 {
         malformed(bytes, offset, length)
       } else {
         uchar(((b0 & 0x1F) << 6) | (b1 & 0x3F))
@@ -517,7 +515,7 @@ fn r_utf_8(bytes : FixedArray[Byte], offset : Int, length : Int) -> Decode {
       let b1 = bytes[offset + 1].to_int()
       let b2 = bytes[offset + 2].to_int()
       let c = ((b0 & 0x0F) << 12) | (((b1 & 0x3F) << 6) | (b2 & 0x3F))
-      if (b2 >> 6) != 0b10 {
+      if b2 >> 6 != 0b10 {
         malformed(bytes, offset, length)
       } else {
         match b0 {
@@ -534,7 +532,7 @@ fn r_utf_8(bytes : FixedArray[Byte], offset : Int, length : Int) -> Decode {
               uchar(c)
             }
           _ =>
-            if (b1 >> 6) != 0b10 {
+            if b1 >> 6 != 0b10 {
               malformed(bytes, offset, length)
             } else {
               uchar(c)
@@ -551,7 +549,7 @@ fn r_utf_8(bytes : FixedArray[Byte], offset : Int, length : Int) -> Decode {
         ((b1 & 0x3F) << 12) |
         ((b2 & 0x3F) << 6) |
         (b3 & 0x3F)
-      if (b3 >> 6) != 0b10 || (b2 >> 6) != 0b10 {
+      if b3 >> 6 != 0b10 || b2 >> 6 != 0b10 {
         malformed(bytes, offset, length)
       } else {
         match b0 {
@@ -568,7 +566,7 @@ fn r_utf_8(bytes : FixedArray[Byte], offset : Int, length : Int) -> Decode {
               uchar(c)
             }
           _ =>
-            if (b1 >> 6) != 0b10 {
+            if b1 >> 6 != 0b10 {
               malformed(bytes, offset, length)
             } else {
               uchar(c)
@@ -590,26 +588,26 @@ priv enum UTF16Decode {
 }
 
 ///|
-fn decode_utf_16le(self : Decoder) -> Decode {
-  let rem = self.i_rem()
+fn decode_utf_16le(decoder : Decoder) -> Decode {
+  let rem = decoder.i_rem()
   if rem <= 0 {
     Decode::End
   } else if rem < 2 {
-    self.t_need(2)
-    t_fill(t_decode_utf_16le, self)
+    decoder.t_need(2)
+    t_fill(t_decode_utf_16le, decoder)
   } else {
-    let j = self.i_pos
-    self.i_pos += 2
-    self.decode_utf_16le_lo(r_utf_16(self.i, j + 1, j))
+    let j = decoder.i_pos
+    decoder.i_pos += 2
+    decoder.decode_utf_16le_lo(r_utf_16(decoder.i, j + 1, j))
   }
 }
 
 ///|
-fn t_decode_utf_16le(self : Decoder) -> Decode {
-  if self.t_len < self.t_need {
-    self.ret(decode_utf_16le, malformed(self.t, 0, self.t_len))
+fn t_decode_utf_16le(decoder : Decoder) -> Decode {
+  if decoder.t_len < decoder.t_need {
+    decoder.ret(decode_utf_16le, malformed(decoder.t, 0, decoder.t_len))
   } else {
-    self.decode_utf_16le_lo(r_utf_16(self.t, 1, 0))
+    decoder.decode_utf_16le_lo(r_utf_16(decoder.t, 1, 0))
   }
 }
 
@@ -697,26 +695,26 @@ fn r_utf_16(
 // UTF16BE
 
 ///|
-fn decode_utf_16be(self : Decoder) -> Decode {
-  let rem = self.i_rem()
+fn decode_utf_16be(decoder : Decoder) -> Decode {
+  let rem = decoder.i_rem()
   if rem <= 0 {
     Decode::End
   } else if rem < 2 {
-    self.t_need(2)
-    t_fill(t_decode_utf_16be, self)
+    decoder.t_need(2)
+    t_fill(t_decode_utf_16be, decoder)
   } else {
-    let j = self.i_pos
-    self.i_pos += 2
-    self.decode_utf_16be_lo(r_utf_16(self.i, j, j + 1))
+    let j = decoder.i_pos
+    decoder.i_pos += 2
+    decoder.decode_utf_16be_lo(r_utf_16(decoder.i, j, j + 1))
   }
 }
 
 ///|
-fn t_decode_utf_16be(self : Decoder) -> Decode {
-  if self.t_len < self.t_need {
-    self.ret(decode_utf_16be, malformed(self.t, 0, self.t_len))
+fn t_decode_utf_16be(decoder : Decoder) -> Decode {
+  if decoder.t_len < decoder.t_need {
+    decoder.ret(decode_utf_16be, malformed(decoder.t, 0, decoder.t_len))
   } else {
-    self.decode_utf_16be_lo(r_utf_16(self.t, 0, 1))
+    decoder.decode_utf_16be_lo(r_utf_16(decoder.t, 0, 1))
   }
 }
 

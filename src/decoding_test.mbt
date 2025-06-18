@@ -21,8 +21,8 @@ test "decode_to/UTF8" {
   buf.write_bytes(b"\xe5\xa5\xbd") // 好
   buf.write_bytes(b"\xf0\x9f\x91\x80") // 👀
   let acc = StringBuilder::new()
-  decode_to!(buf.to_bytes(), acc, encoding=UTF8)
-  inspect!(acc.to_string(), content="你好👀")
+  decode_to(buf.to_bytes(), acc, encoding=UTF8)
+  inspect(acc.to_string(), content="你好👀")
 }
 
 ///|
@@ -31,8 +31,8 @@ test "decode_to/UTF16LE" {
   let buf = @buffer.new(size_hint=src.to_bytes().length())
   buf.write_bytes(src.to_bytes())
   let acc = StringBuilder::new()
-  decode_to!(buf.to_bytes(), acc, encoding=UTF16LE)
-  inspect!(acc.to_string(), content="你好👀")
+  decode_to(buf.to_bytes(), acc, encoding=UTF16LE)
+  inspect(acc.to_string(), content="你好👀")
 }
 
 ///|
@@ -43,6 +43,6 @@ test "decode_to/UTF16BE" {
   buf.write_bytes(b"\xd8\x3d\xdc\x07")
   buf.write_bytes(b"\xd8\x3d\xdc\x30")
   let acc = StringBuilder::new()
-  decode_to!(buf.to_bytes(), acc, encoding=UTF16BE)
-  inspect!(acc.to_string(), content="🐈🐱🐇🐰")
+  decode_to(buf.to_bytes(), acc, encoding=UTF16BE)
+  inspect(acc.to_string(), content="🐈🐱🐇🐰")
 }
