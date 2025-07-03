@@ -16,12 +16,9 @@
 test "encoding String to UTF8" {
   let src = "你好👀"
   let bytes = @encoding.encode(encoding=UTF8, src)
-  inspect(
-    bytes,
-    content=
-      #|b"\xe4\xbd\xa0\xe5\xa5\xbd\xf0\x9f\x91\x80"
-    ,
-  )
+  @json.inspect(bytes.to_array(), content=[
+    228, 189, 160, 229, 165, 189, 240, 159, 145, 128,
+  ])
 }
 
 ///|
@@ -29,24 +26,22 @@ test "encode_to/UTF8" {
   let src = "你好👀"
   let buf = @buffer.new(size_hint=10)
   @encoding.encode_to(src, buf, encoding=UTF8)
-  inspect(
-    buf.to_bytes(),
-    content=
-      #|b"\xe4\xbd\xa0\xe5\xa5\xbd\xf0\x9f\x91\x80"
-    ,
-  )
+  @json.inspect(buf.to_bytes().to_array(), content=[
+    228, 189, 160, 229, 165, 189, 240, 159, 145, 128,
+  ])
 }
 
 ///|
 test "encoding String to UTF16 (alias of UTF16LE)" {
   let src = "LISP programmers know the value of everything"
   let bytes = @encoding.encode(encoding=UTF16LE, src)
-  inspect(
-    bytes,
-    content=
-      #|b"\x4c\x00\x49\x00\x53\x00\x50\x00\x20\x00\x70\x00\x72\x00\x6f\x00\x67\x00\x72\x00\x61\x00\x6d\x00\x6d\x00\x65\x00\x72\x00\x73\x00\x20\x00\x6b\x00\x6e\x00\x6f\x00\x77\x00\x20\x00\x74\x00\x68\x00\x65\x00\x20\x00\x76\x00\x61\x00\x6c\x00\x75\x00\x65\x00\x20\x00\x6f\x00\x66\x00\x20\x00\x65\x00\x76\x00\x65\x00\x72\x00\x79\x00\x74\x00\x68\x00\x69\x00\x6e\x00\x67\x00"
-    ,
-  )
+  @json.inspect(bytes.to_array(), content=[
+    76, 0, 73, 0, 83, 0, 80, 0, 32, 0, 112, 0, 114, 0, 111, 0, 103, 0, 114, 0, 97,
+    0, 109, 0, 109, 0, 101, 0, 114, 0, 115, 0, 32, 0, 107, 0, 110, 0, 111, 0, 119,
+    0, 32, 0, 116, 0, 104, 0, 101, 0, 32, 0, 118, 0, 97, 0, 108, 0, 117, 0, 101,
+    0, 32, 0, 111, 0, 102, 0, 32, 0, 101, 0, 118, 0, 101, 0, 114, 0, 121, 0, 116,
+    0, 104, 0, 105, 0, 110, 0, 103, 0,
+  ])
 }
 
 ///|
@@ -54,24 +49,24 @@ test "encode_to/UTF16" {
   let src = "LISP programmers know the value of everything"
   let buf = @buffer.new(size_hint=10)
   @encoding.encode_to(src, buf, encoding=UTF16LE)
-  inspect(
-    buf.to_bytes(),
-    content=
-      #|b"\x4c\x00\x49\x00\x53\x00\x50\x00\x20\x00\x70\x00\x72\x00\x6f\x00\x67\x00\x72\x00\x61\x00\x6d\x00\x6d\x00\x65\x00\x72\x00\x73\x00\x20\x00\x6b\x00\x6e\x00\x6f\x00\x77\x00\x20\x00\x74\x00\x68\x00\x65\x00\x20\x00\x76\x00\x61\x00\x6c\x00\x75\x00\x65\x00\x20\x00\x6f\x00\x66\x00\x20\x00\x65\x00\x76\x00\x65\x00\x72\x00\x79\x00\x74\x00\x68\x00\x69\x00\x6e\x00\x67\x00"
-    ,
-  )
+  @json.inspect(buf.to_bytes().to_array(), content=[
+    76, 0, 73, 0, 83, 0, 80, 0, 32, 0, 112, 0, 114, 0, 111, 0, 103, 0, 114, 0, 97,
+    0, 109, 0, 109, 0, 101, 0, 114, 0, 115, 0, 32, 0, 107, 0, 110, 0, 111, 0, 119,
+    0, 32, 0, 116, 0, 104, 0, 101, 0, 32, 0, 118, 0, 97, 0, 108, 0, 117, 0, 101,
+    0, 32, 0, 111, 0, 102, 0, 32, 0, 101, 0, 118, 0, 101, 0, 114, 0, 121, 0, 116,
+    0, 104, 0, 105, 0, 110, 0, 103, 0,
+  ])
 }
 
 ///|
 test "encoding String to UTF16LE" {
   let src = "and the cost of nothing"
   let bytes = @encoding.encode(encoding=UTF16LE, src)
-  inspect(
-    bytes,
-    content=
-      #|b"\x61\x00\x6e\x00\x64\x00\x20\x00\x74\x00\x68\x00\x65\x00\x20\x00\x63\x00\x6f\x00\x73\x00\x74\x00\x20\x00\x6f\x00\x66\x00\x20\x00\x6e\x00\x6f\x00\x74\x00\x68\x00\x69\x00\x6e\x00\x67\x00"
-    ,
-  )
+  @json.inspect(bytes.to_array(), content=[
+    97, 0, 110, 0, 100, 0, 32, 0, 116, 0, 104, 0, 101, 0, 32, 0, 99, 0, 111, 0, 115,
+    0, 116, 0, 32, 0, 111, 0, 102, 0, 32, 0, 110, 0, 111, 0, 116, 0, 104, 0, 105,
+    0, 110, 0, 103, 0,
+  ])
 }
 
 ///|
@@ -79,24 +74,22 @@ test "encode_to/UTF16LE" {
   let src = "and the cost of nothing"
   let buf = @buffer.new(size_hint=10)
   @encoding.encode_to(src, buf, encoding=UTF16LE)
-  inspect(
-    buf.to_bytes(),
-    content=
-      #|b"\x61\x00\x6e\x00\x64\x00\x20\x00\x74\x00\x68\x00\x65\x00\x20\x00\x63\x00\x6f\x00\x73\x00\x74\x00\x20\x00\x6f\x00\x66\x00\x20\x00\x6e\x00\x6f\x00\x74\x00\x68\x00\x69\x00\x6e\x00\x67\x00"
-    ,
-  )
+  @json.inspect(buf.to_bytes().to_array(), content=[
+    97, 0, 110, 0, 100, 0, 32, 0, 116, 0, 104, 0, 101, 0, 32, 0, 99, 0, 111, 0, 115,
+    0, 116, 0, 32, 0, 111, 0, 102, 0, 32, 0, 110, 0, 111, 0, 116, 0, 104, 0, 105,
+    0, 110, 0, 103, 0,
+  ])
 }
 
 ///|
 test "encoding String to UTF16BE" {
   let src = "λf.(λx.f(x x))(λx.f(x x))"
   let bytes = @encoding.encode(encoding=UTF16BE, src)
-  inspect(
-    bytes,
-    content=
-      #|b"\x03\xbb\x00\x66\x00\x2e\x00\x28\x03\xbb\x00\x78\x00\x2e\x00\x66\x00\x28\x00\x78\x00\x20\x00\x78\x00\x29\x00\x29\x00\x28\x03\xbb\x00\x78\x00\x2e\x00\x66\x00\x28\x00\x78\x00\x20\x00\x78\x00\x29\x00\x29"
-    ,
-  )
+  @json.inspect(bytes.to_array(), content=[
+    3, 187, 0, 102, 0, 46, 0, 40, 3, 187, 0, 120, 0, 46, 0, 102, 0, 40, 0, 120, 0,
+    32, 0, 120, 0, 41, 0, 41, 0, 40, 3, 187, 0, 120, 0, 46, 0, 102, 0, 40, 0, 120,
+    0, 32, 0, 120, 0, 41, 0, 41,
+  ])
 }
 
 ///|
@@ -104,10 +97,9 @@ test "encode_to/UTF16BE" {
   let src = "λf.(λx.f(x x))(λx.f(x x))"
   let buf = @buffer.new(size_hint=10)
   @encoding.encode_to(src, buf, encoding=UTF16BE)
-  inspect(
-    buf.to_bytes(),
-    content=
-      #|b"\x03\xbb\x00\x66\x00\x2e\x00\x28\x03\xbb\x00\x78\x00\x2e\x00\x66\x00\x28\x00\x78\x00\x20\x00\x78\x00\x29\x00\x29\x00\x28\x03\xbb\x00\x78\x00\x2e\x00\x66\x00\x28\x00\x78\x00\x20\x00\x78\x00\x29\x00\x29"
-    ,
-  )
+  @json.inspect(buf.to_bytes().to_array(), content=[
+    3, 187, 0, 102, 0, 46, 0, 40, 3, 187, 0, 120, 0, 46, 0, 102, 0, 40, 0, 120, 0,
+    32, 0, 120, 0, 41, 0, 41, 0, 40, 3, 187, 0, 120, 0, 46, 0, 102, 0, 40, 0, 120,
+    0, 32, 0, 120, 0, 41, 0, 41,
+  ])
 }

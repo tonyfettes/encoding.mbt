@@ -19,6 +19,14 @@ pub suberror DecodingError {
 } derive(Show)
 
 ///|
+pub impl ToJson for DecodingError with to_json(self : DecodingError) -> Json {
+  match self {
+    Malformed(bytes) => { "malformed": bytes.to_array().to_json() }
+    Truncated(bytes) => { "truncated": bytes.to_array().to_json() }
+  }
+}
+
+///|
 pub(all) enum Encoding {
   UTF8
   UTF16LE
@@ -61,7 +69,7 @@ priv enum Decode {
   Refill(Bytes)
   Malformed(Bytes)
   Uchar(Char)
-} derive(Show)
+}
 
 // helper constructor
 

@@ -48,10 +48,11 @@ let utf_8_len = [
 /// ```moonbit
 /// let inputs = [b"abc", b"\xf0", b"\x9f\x90\xb0"] // UTF8(🐰) == <F09F 90B0>
 /// let decoder = decoder(UTF8)
-/// inspect!(decoder.consume!(inputs[0]), content="abc")
-/// inspect!(decoder.consume!(inputs[1]), content="")
-/// inspect!(decoder.consume!(inputs[2]), content="🐰")
-/// assert_true!(decoder.finish!().is_empty())
+/// inspect(decoder.consume(inputs[0]), content="abc")
+/// inspect(decoder.consume(inputs[1]), content="")
+/// inspect(decoder.consume(inputs[2]), content="🐰")
+/// assert_true(decoder.finish().is_empty())
+/// ```
 pub fn decoder(encoding : Encoding) -> Decoder {
   let i = FixedArray::default()
   let i_pos = 0
@@ -378,9 +379,18 @@ pub fn lossy_finish(self : Decoder) -> String {
 }
 
 ///|
+pub fn[T : Compare] max(x : T, y : T) -> T {
+  if x > y {
+    x
+  } else {
+    y
+  }
+}
+
+///|
 fn i_cont(self : Decoder, input : @bytes.View) -> Unit {
   // concat `input` to `i`, drop decoded `i`
-  let i_rem = @math.maximum(self.i_rem(), 0)
+  let i_rem = max(self.i_rem(), 0)
   let new_len = i_rem + input.length()
   // init a new `i`
   let new_i = FixedArray::make(new_len, Byte::default())
@@ -450,7 +460,7 @@ fn t_fill(k : Cont, decoder : Decoder) -> Decode {
     let need = decoder.t_need - decoder.t_len
     if rem < need {
       blit(decoder, rem)
-      decoder.refill(@tuple.curry(t_fill)(k))
+      decoder.refill(curry(t_fill)(k))
     } else {
       blit(decoder, need)
       k(decoder)
@@ -620,7 +630,7 @@ fn decode_utf_16le_lo(self : Decoder, v : UTF16Decode) -> Decode {
       let rem = self.i_rem()
       if rem < 2 {
         self.t_need(2)
-        t_fill(@tuple.curry(t_decode_utf_16le_lo)(hi), self)
+        t_fill(curry(t_decode_utf_16le_lo)(hi), self)
       } else {
         let j = self.i_pos
         let dcd = r_utf_16_lo(hi, self.i, j + 1, j)
@@ -675,6 +685,15 @@ fn r_utf_16_lo(
 }
 
 ///|
+pub fn[T : Compare] min(x : T, y : T) -> T {
+  if x > y {
+    y
+  } else {
+    x
+  }
+}
+
+///|
 fn r_utf_16(
   bytes : FixedArray[Byte],
   offset0 : Int,
@@ -686,7 +705,7 @@ fn r_utf_16(
   if u < 0xD800 || u > 0xDFFF {
     UTF16Uchar(u.unsafe_to_char())
   } else if u > 0xDBFF {
-    UTF16Malformed(slice(bytes, @math.minimum(offset0, offset1), 2))
+    UTF16Malformed(slice(bytes, min(offset0, offset1), 2))
   } else {
     Hi(u)
   }
@@ -719,6 +738,12 @@ fn t_decode_utf_16be(decoder : Decoder) -> Decode {
 }
 
 ///|
+/// Curry a function.
+pub fn[T, U, V] curry(f : (T, U) -> V) -> (T) -> (U) -> V {
+  (x : T) => (y : U) => f(x, y)
+}
+
+///|
 fn decode_utf_16be_lo(self : Decoder, decode : UTF16Decode) -> Decode {
   match decode {
     UTF16Uchar(x) => self.ret(decode_utf_16be, Uchar(x))
@@ -727,7 +752,7 @@ fn decode_utf_16be_lo(self : Decoder, decode : UTF16Decode) -> Decode {
       let rem = self.i_rem()
       if rem < 2 {
         self.t_need(2)
-        t_fill(@tuple.curry(t_decode_utf_16be_lo)(hi), self)
+        t_fill(curry(t_decode_utf_16be_lo)(hi), self)
       } else {
         let j = self.i_pos
         let dcd = r_utf_16_lo(hi, self.i, j, j + 1)

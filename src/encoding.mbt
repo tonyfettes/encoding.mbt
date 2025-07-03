@@ -28,8 +28,8 @@
 ///
 /// ```moonbit
 /// let src = "Hello, World!"
-/// inspect(encode(encoding=UTF8, src), content=
-///   #|b"\x48\x65\x6c\x6c\x6f\x2c\x20\x57\x6f\x72\x6c\x64\x21"
+/// @json.inspect(encode(encoding=UTF8, src).to_array(), content=
+///   [72,101,108,108,111,44,32,87,111,114,108,100,33]
 /// )
 /// ```
 pub fn[Encode : Encode] encode(string : Encode, encoding~ : Encoding) -> Bytes {
