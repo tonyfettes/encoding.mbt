@@ -379,7 +379,7 @@ pub fn lossy_finish(self : Decoder) -> String {
 }
 
 ///|
-pub fn[T : Compare] max(x : T, y : T) -> T {
+fn[T : Compare] max(x : T, y : T) -> T {
   if x > y {
     x
   } else {
@@ -685,7 +685,7 @@ fn r_utf_16_lo(
 }
 
 ///|
-pub fn[T : Compare] min(x : T, y : T) -> T {
+fn[T : Compare] min(x : T, y : T) -> T {
   if x > y {
     y
   } else {
@@ -739,7 +739,7 @@ fn t_decode_utf_16be(decoder : Decoder) -> Decode {
 
 ///|
 /// Curry a function.
-pub fn[T, U, V] curry(f : (T, U) -> V) -> (T) -> (U) -> V {
+fn[T, U, V] curry(f : (T, U) -> V) -> (T) -> (U) -> V {
   (x : T) => (y : U) => f(x, y)
 }
 

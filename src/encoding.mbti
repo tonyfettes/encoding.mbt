@@ -39,6 +39,7 @@ pub suberror DecodingError {
   Truncated(Bytes)
 }
 impl Show for DecodingError
+impl ToJson for DecodingError
 
 pub(all) enum Encoding {
   UTF8
