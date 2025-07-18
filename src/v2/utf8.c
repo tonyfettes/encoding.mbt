@@ -22,10 +22,25 @@ moonbit_encoding_v2_utf8_decode_0(
     }
     c0 = sptr[0];
     if (c0 <= 0x7F) {
-      *tptr++ = c0;
-      sptr += 1;
-      slen -= 1;
-      continue;
+      if (slen >= 4) {
+        c1 = sptr[1];
+        c2 = sptr[2];
+        c3 = sptr[3];
+        if (c1 <= 0x7F && c2 <= 0x7F && c3 <= 0x7F) {
+          tptr[0] = c0;
+          tptr[1] = c1;
+          tptr[2] = c2;
+          tptr[3] = c3;
+          tptr += 4;
+          sptr += 4;
+          slen -= 4;
+          continue;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else {
+        goto utf8_1_byte;
+      }
     }
     if (slen < 2) {
       return -1;
@@ -95,6 +110,11 @@ moonbit_encoding_v2_utf8_decode_0(
       }
     }
     return -1;
+  utf8_1_byte:
+    *tptr++ = c0;
+    sptr += 1;
+    slen -= 1;
+    continue;
   utf8_3_bytes:
     sptr += 3;
     slen -= 3;
