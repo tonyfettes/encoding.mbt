@@ -52,13 +52,6 @@ moonbit_encoding_v2_utf8_decode_0(
         return -1;
       }
     }
-    if (c0 >= 0xE1 && c0 <= 0xEC) {
-      if ((c1 >= 0x80 && c1 <= 0xBF) && (c2 >= 0x80 && c2 <= 0xBF)) {
-        goto utf8_3_bytes;
-      } else {
-        return -1;
-      }
-    }
     if (c0 == 0xED) {
       if ((c1 >= 0x80 && c1 <= 0x9F) && (c2 >= 0x80 && c2 <= 0xBF)) {
         goto utf8_3_bytes;
@@ -66,7 +59,7 @@ moonbit_encoding_v2_utf8_decode_0(
         return -1;
       }
     }
-    if (c0 >= 0xEE && c0 <= 0xEF) {
+    if (c0 >= 0xE1 && c0 <= 0xEF) {
       if ((c1 >= 0x80 && c1 <= 0xBF) && (c2 >= 0x80 && c2 <= 0xBF)) {
         goto utf8_3_bytes;
       } else {
