@@ -22,16 +22,12 @@ tonyfettes_encoding_v2_decode_utf8_to_char_array(
 ) {
   unsigned char *sptr = s.bytes + s.offset;
   int32_t slen = s.length;
-  int32_t count[7] = {0, 0, 0, 0, 0, 0, 0};
   while (true) {
     unsigned char c0;
     unsigned char c1;
     unsigned char c2;
     unsigned char c3;
     if (slen == 0) {
-      // for (int i = 0; i < 7; i++) {
-      //   fprintf(stderr, "count[%d] (%d): %d\n", i, 1 << i, count[i]);
-      // }
       return -1;
     }
     c0 = sptr[0];
@@ -55,7 +51,6 @@ tonyfettes_encoding_v2_decode_utf8_to_char_array(
           t->size += 64;
           sptr += 64;
           slen -= 64;
-          count[6]++;
           continue;
         } else if ((mask & 0xFFFFFFFF) == 0) {
           __m128i b0 = _mm512_extracti32x4_epi32(data, 0);
@@ -67,7 +62,6 @@ tonyfettes_encoding_v2_decode_utf8_to_char_array(
           t->size += 32;
           sptr += 32;
           slen -= 32;
-          count[5]++;
           continue;
         } else if ((mask & 0xFFFF) == 0) {
           __m128i b0 = _mm512_extracti32x4_epi32(data, 0);
@@ -76,39 +70,94 @@ tonyfettes_encoding_v2_decode_utf8_to_char_array(
           t->size += 16;
           sptr += 16;
           slen -= 16;
-          count[4]++;
           continue;
         } else if ((mask & 0xFF) == 0) {
-          t->data[t->size] = c0;
-          t->data[t->size + 1] = sptr[1];
-          t->data[t->size + 2] = sptr[2];
-          t->data[t->size + 3] = sptr[3];
-          t->data[t->size + 4] = sptr[4];
-          t->data[t->size + 5] = sptr[5];
-          t->data[t->size + 6] = sptr[6];
-          t->data[t->size + 7] = sptr[7];
-          t->size += 8;
-          sptr += 8;
-          slen -= 8;
-          count[3]++;
-          continue;
+          goto utf8_1x8;
         } else if ((mask & 0xF) == 0) {
-          t->data[t->size] = c0;
-          t->data[t->size + 1] = sptr[1];
-          t->data[t->size + 2] = sptr[2];
-          t->data[t->size + 3] = sptr[3];
-          t->size += 4;
-          sptr += 4;
-          slen -= 4;
-          count[2]++;
-          continue;
+          goto utf8_1x4;
         } else if ((mask & 0x3) == 0) {
+          goto utf8_1x2;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else if (slen >= 32) {
+        __m256i data = _mm256_loadu_si256((const __m256i *)sptr);
+        __mmask32 mask = _mm256_test_epi8_mask(data, _mm256_set1_epi8(0x80));
+        if (mask == 0) {
+          __m128i b0 = _mm256_extracti128_si256(data, 0);
+          __m128i b1 = _mm256_extracti128_si256(data, 1);
+          __m512i q0 = _mm512_cvtepu8_epi32(b0);
+          __m512i q1 = _mm512_cvtepu8_epi32(b1);
+          _mm512_storeu_si512((__m512i *)&t->data[t->size], q0);
+          _mm512_storeu_si512((__m512i *)&t->data[t->size + 16], q1);
+          t->size += 32;
+          sptr += 32;
+          slen -= 32;
+          continue;
+        } else if ((mask & 0xFFFF) == 0) {
+          __m128i b0 = _mm256_extracti128_si256(data, 0);
+          __m512i q0 = _mm512_cvtepu8_epi32(b0);
+          _mm512_storeu_si512((__m512i *)&t->data[t->size], q0);
+          t->size += 16;
+          sptr += 16;
+          slen -= 16;
+          continue;
+        } else if ((mask & 0xFF) == 0) {
+          goto utf8_1x8;
+        } else if ((mask & 0xF) == 0) {
+          goto utf8_1x4;
+        } else if ((mask & 0x3) == 0) {
+          goto utf8_1x2;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else if (slen >= 16) {
+        __m128i data = _mm_loadu_si128((const __m128i *)sptr);
+        __mmask16 mask = _mm_test_epi8_mask(data, _mm_set1_epi8(0x80));
+        if (mask == 0) {
+          __m512i q0 = _mm512_cvtepu8_epi32(data);
+          _mm512_storeu_si512((__m512i *)&t->data[t->size], q0);
+          t->size += 16;
+          sptr += 16;
+          slen -= 16;
+          continue;
+        } else if ((mask & 0xFF) == 0) {
+          goto utf8_1x8;
+        } else if ((mask & 0xF) == 0) {
+          goto utf8_1x4;
+        } else if ((mask & 0x3) == 0) {
+          goto utf8_1x2;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else if (slen >= 8) {
+        uint64_t data = *(const uint64_t *)sptr;
+        if ((data & 0x8080808080808080ULL) == 0) {
+          goto utf8_1x8;
+        } else if ((data & 0x80808080ULL) == 0) {
+          goto utf8_1x4;
+        } else if ((data & 0x8080ULL) == 0) {
+          goto utf8_1x2;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else if (slen >= 4) {
+        uint32_t data = *(const uint32_t *)sptr;
+        if ((data & 0x80808080U) == 0) {
+          goto utf8_1x4;
+        } else if ((data & 0x8080U) == 0) {
+          goto utf8_1x2;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else if (slen >= 2) {
+        unsigned char c1 = sptr[1];
+        if (c1 <= 0x7F) {
           t->data[t->size] = c0;
-          t->data[t->size + 1] = sptr[1];
+          t->data[t->size + 1] = c1;
           t->size += 2;
           sptr += 2;
           slen -= 2;
-          count[1]++;
           continue;
         } else {
           goto utf8_1_byte;
@@ -116,6 +165,35 @@ tonyfettes_encoding_v2_decode_utf8_to_char_array(
       } else {
         goto utf8_1_byte;
       }
+    utf8_1x8:
+      t->data[t->size] = c0;
+      t->data[t->size + 1] = sptr[1];
+      t->data[t->size + 2] = sptr[2];
+      t->data[t->size + 3] = sptr[3];
+      t->data[t->size + 4] = sptr[4];
+      t->data[t->size + 5] = sptr[5];
+      t->data[t->size + 6] = sptr[6];
+      t->data[t->size + 7] = sptr[7];
+      t->size += 8;
+      sptr += 8;
+      slen -= 8;
+      continue;
+    utf8_1x4:
+      t->data[t->size] = c0;
+      t->data[t->size + 1] = sptr[1];
+      t->data[t->size + 2] = sptr[2];
+      t->data[t->size + 3] = sptr[3];
+      t->size += 4;
+      sptr += 4;
+      slen -= 4;
+      continue;
+    utf8_1x2:
+      t->data[t->size] = c0;
+      t->data[t->size + 1] = sptr[1];
+      t->size += 2;
+      sptr += 2;
+      slen -= 2;
+      continue;
     }
     if (c0 <= 0xC1) {
       goto malformed;
@@ -205,7 +283,6 @@ tonyfettes_encoding_v2_decode_utf8_to_char_array(
     t->size++;
     sptr += 1;
     slen -= 1;
-    count[0]++;
     continue;
   utf8_2_bytes:
     t->data[t->size] = ((c0 & 0x1F) << 6) | (c1 & 0x3F);
@@ -247,19 +324,140 @@ tonyfettes_encoding_v2_validate_utf8_to_char_array(struct moonbit_bytes_view s
     }
     c0 = sptr[0];
     if (c0 <= 0x7F) {
-      if (slen >= 8) {
-        unsigned char c1 = sptr[1];
-        unsigned char c2 = sptr[2];
-        unsigned char c3 = sptr[3];
-        unsigned char c4 = sptr[4];
-        unsigned char c5 = sptr[5];
-        unsigned char c6 = sptr[6];
-        unsigned char c7 = sptr[7];
-        if (c1 <= 0x7F && c2 <= 0x7F && c3 <= 0x7F && c4 <= 0x7F &&
-            c5 <= 0x7F && c6 <= 0x7F && c7 <= 0x7F) {
+      if (slen >= 64) {
+        __m512i data = _mm512_loadu_si512((const __m512i *)sptr);
+        __mmask64 mask = _mm512_test_epi8_mask(data, _mm512_set1_epi8(0x80));
+        if (mask == 0) {
+          sptr += 64;
+          slen -= 64;
+          tlen += 64;
+          continue;
+        } else if ((mask & 0xFFFFFFFF) == 0) {
+          sptr += 32;
+          slen -= 32;
+          tlen += 32;
+          continue;
+        } else if ((mask & 0xFFFF) == 0) {
+          sptr += 16;
+          slen -= 16;
+          tlen += 16;
+          continue;
+        } else if ((mask & 0xFF) == 0) {
           sptr += 8;
           slen -= 8;
           tlen += 8;
+          continue;
+        } else if ((mask & 0xF) == 0) {
+          sptr += 4;
+          slen -= 4;
+          tlen += 4;
+          continue;
+        } else if ((mask & 0x3) == 0) {
+          sptr += 2;
+          slen -= 2;
+          tlen += 2;
+          continue;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else if (slen >= 32) {
+        __m256i data = _mm256_loadu_si256((const __m256i *)sptr);
+        __mmask32 mask = _mm256_test_epi8_mask(data, _mm256_set1_epi8(0x80));
+        if (mask == 0) {
+          sptr += 32;
+          slen -= 32;
+          tlen += 32;
+          continue;
+        } else if ((mask & 0xFFFF) == 0) {
+          sptr += 16;
+          slen -= 16;
+          tlen += 16;
+          continue;
+        } else if ((mask & 0xFF) == 0) {
+          sptr += 8;
+          slen -= 8;
+          tlen += 8;
+          continue;
+        } else if ((mask & 0xF) == 0) {
+          sptr += 4;
+          slen -= 4;
+          tlen += 4;
+          continue;
+        } else if ((mask & 0x3) == 0) {
+          sptr += 2;
+          slen -= 2;
+          tlen += 2;
+          continue;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else if (slen >= 16) {
+        __m128i data = _mm_loadu_si128((const __m128i *)sptr);
+        __mmask16 mask = _mm_test_epi8_mask(data, _mm_set1_epi8(0x80));
+        if (mask == 0) {
+          sptr += 16;
+          slen -= 16;
+          tlen += 16;
+          continue;
+        } else if ((mask & 0xFF) == 0) {
+          sptr += 8;
+          slen -= 8;
+          tlen += 8;
+          continue;
+        } else if ((mask & 0xF) == 0) {
+          sptr += 4;
+          slen -= 4;
+          tlen += 4;
+          continue;
+        } else if ((mask & 0x3) == 0) {
+          sptr += 2;
+          slen -= 2;
+          tlen += 2;
+          continue;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else if (slen >= 8) {
+        uint64_t data = *(const uint64_t *)sptr;
+        if ((data & 0x8080808080808080ULL) == 0) {
+          sptr += 8;
+          slen -= 8;
+          tlen += 8;
+          continue;
+        } else if ((data & 0x80808080ULL) == 0) {
+          sptr += 4;
+          slen -= 4;
+          tlen += 4;
+          continue;
+        } else if ((data & 0x8080ULL) == 0) {
+          sptr += 2;
+          slen -= 2;
+          tlen += 2;
+          continue;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else if (slen >= 4) {
+        uint32_t data = *(const uint32_t *)sptr;
+        if ((data & 0x80808080U) == 0) {
+          sptr += 4;
+          slen -= 4;
+          tlen += 4;
+          continue;
+        } else if ((data & 0x8080U) == 0) {
+          sptr += 2;
+          slen -= 2;
+          tlen += 2;
+          continue;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else if (slen >= 2) {
+        unsigned char c1 = sptr[1];
+        if (c1 <= 0x7F) {
+          sptr += 2;
+          slen -= 2;
+          tlen += 2;
           continue;
         } else {
           goto utf8_1_byte;
@@ -388,27 +586,132 @@ tonyfettes_encoding_v2_unsafe_decode_utf8_to_char_array(
     unsigned char c3;
     c0 = sptr[0];
     if (c0 <= 0x7F) {
-      if (slen >= 8) {
+      if (slen >= 64) {
+        __m512i data = _mm512_loadu_si512((const __m512i *)sptr);
+        __mmask64 mask = _mm512_test_epi8_mask(data, _mm512_set1_epi8(0x80));
+        if (mask == 0) {
+          __m128i b0 = _mm512_extracti32x4_epi32(data, 0);
+          __m128i b1 = _mm512_extracti32x4_epi32(data, 1);
+          __m128i b2 = _mm512_extracti32x4_epi32(data, 2);
+          __m128i b3 = _mm512_extracti32x4_epi32(data, 3);
+          __m512i q0 = _mm512_cvtepu8_epi32(b0);
+          __m512i q1 = _mm512_cvtepu8_epi32(b1);
+          __m512i q2 = _mm512_cvtepu8_epi32(b2);
+          __m512i q3 = _mm512_cvtepu8_epi32(b3);
+          _mm512_storeu_si512((__m512i *)&t->data[t->size], q0);
+          _mm512_storeu_si512((__m512i *)&t->data[t->size + 16], q1);
+          _mm512_storeu_si512((__m512i *)&t->data[t->size + 32], q2);
+          _mm512_storeu_si512((__m512i *)&t->data[t->size + 48], q3);
+          t->size += 64;
+          sptr += 64;
+          slen -= 64;
+          continue;
+        } else if ((mask & 0xFFFFFFFF) == 0) {
+          __m128i b0 = _mm512_extracti32x4_epi32(data, 0);
+          __m128i b1 = _mm512_extracti32x4_epi32(data, 1);
+          __m512i q0 = _mm512_cvtepu8_epi32(b0);
+          __m512i q1 = _mm512_cvtepu8_epi32(b1);
+          _mm512_storeu_si512((__m512i *)&t->data[t->size], q0);
+          _mm512_storeu_si512((__m512i *)&t->data[t->size + 16], q1);
+          t->size += 32;
+          sptr += 32;
+          slen -= 32;
+          continue;
+        } else if ((mask & 0xFFFF) == 0) {
+          __m128i b0 = _mm512_extracti32x4_epi32(data, 0);
+          __m512i q0 = _mm512_cvtepu8_epi32(b0);
+          _mm512_storeu_si512((__m512i *)&t->data[t->size], q0);
+          t->size += 16;
+          sptr += 16;
+          slen -= 16;
+          continue;
+        } else if ((mask & 0xFF) == 0) {
+          goto utf8_1x8;
+        } else if ((mask & 0xF) == 0) {
+          goto utf8_1x4;
+        } else if ((mask & 0x3) == 0) {
+          goto utf8_1x2;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else if (slen >= 32) {
+        __m256i data = _mm256_loadu_si256((const __m256i *)sptr);
+        __mmask32 mask = _mm256_test_epi8_mask(data, _mm256_set1_epi8(0x80));
+        if (mask == 0) {
+          __m128i b0 = _mm256_extracti128_si256(data, 0);
+          __m128i b1 = _mm256_extracti128_si256(data, 1);
+          __m512i q0 = _mm512_cvtepu8_epi32(b0);
+          __m512i q1 = _mm512_cvtepu8_epi32(b1);
+          _mm512_storeu_si512((__m512i *)&t->data[t->size], q0);
+          _mm512_storeu_si512((__m512i *)&t->data[t->size + 16], q1);
+          t->size += 32;
+          sptr += 32;
+          slen -= 32;
+          continue;
+        } else if ((mask & 0xFFFF) == 0) {
+          __m128i b0 = _mm256_extracti128_si256(data, 0);
+          __m512i q0 = _mm512_cvtepu8_epi32(b0);
+          _mm512_storeu_si512((__m512i *)&t->data[t->size], q0);
+          t->size += 16;
+          sptr += 16;
+          slen -= 16;
+          continue;
+        } else if ((mask & 0xFF) == 0) {
+          goto utf8_1x8;
+        } else if ((mask & 0xF) == 0) {
+          goto utf8_1x4;
+        } else if ((mask & 0x3) == 0) {
+          goto utf8_1x2;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else if (slen >= 16) {
+        __m128i data = _mm_loadu_si128((const __m128i *)sptr);
+        __mmask16 mask = _mm_test_epi8_mask(data, _mm_set1_epi8(0x80));
+        if (mask == 0) {
+          __m512i q0 = _mm512_cvtepu8_epi32(data);
+          _mm512_storeu_si512((__m512i *)&t->data[t->size], q0);
+          t->size += 16;
+          sptr += 16;
+          slen -= 16;
+          continue;
+        } else if ((mask & 0xFF) == 0) {
+          goto utf8_1x8;
+        } else if ((mask & 0xF) == 0) {
+          goto utf8_1x4;
+        } else if ((mask & 0x3) == 0) {
+          goto utf8_1x2;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else if (slen >= 8) {
+        uint64_t data = *(const uint64_t *)sptr;
+        if ((data & 0x8080808080808080ULL) == 0) {
+          goto utf8_1x8;
+        } else if ((data & 0x80808080ULL) == 0) {
+          goto utf8_1x4;
+        } else if ((data & 0x8080ULL) == 0) {
+          goto utf8_1x2;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else if (slen >= 4) {
+        uint32_t data = *(const uint32_t *)sptr;
+        if ((data & 0x80808080U) == 0) {
+          goto utf8_1x4;
+        } else if ((data & 0x8080U) == 0) {
+          goto utf8_1x2;
+        } else {
+          goto utf8_1_byte;
+        }
+      } else if (slen >= 2) {
         unsigned char c1 = sptr[1];
-        unsigned char c2 = sptr[2];
-        unsigned char c3 = sptr[3];
-        unsigned char c4 = sptr[4];
-        unsigned char c5 = sptr[5];
-        unsigned char c6 = sptr[6];
-        unsigned char c7 = sptr[7];
-        if (c1 <= 0x7F && c2 <= 0x7F && c3 <= 0x7F && c4 <= 0x7F &&
-            c5 <= 0x7F && c6 <= 0x7F && c7 <= 0x7F) {
+        if (c1 <= 0x7F) {
           t->data[t->size] = c0;
           t->data[t->size + 1] = c1;
-          t->data[t->size + 2] = c2;
-          t->data[t->size + 3] = c3;
-          t->data[t->size + 4] = c4;
-          t->data[t->size + 5] = c5;
-          t->data[t->size + 6] = c6;
-          t->data[t->size + 7] = c7;
-          t->size += 8;
-          sptr += 8;
-          slen -= 8;
+          t->size += 2;
+          sptr += 2;
+          slen -= 2;
           continue;
         } else {
           goto utf8_1_byte;
@@ -416,6 +719,35 @@ tonyfettes_encoding_v2_unsafe_decode_utf8_to_char_array(
       } else {
         goto utf8_1_byte;
       }
+    utf8_1x8:
+      t->data[t->size] = c0;
+      t->data[t->size + 1] = sptr[1];
+      t->data[t->size + 2] = sptr[2];
+      t->data[t->size + 3] = sptr[3];
+      t->data[t->size + 4] = sptr[4];
+      t->data[t->size + 5] = sptr[5];
+      t->data[t->size + 6] = sptr[6];
+      t->data[t->size + 7] = sptr[7];
+      t->size += 8;
+      sptr += 8;
+      slen -= 8;
+      continue;
+    utf8_1x4:
+      t->data[t->size] = c0;
+      t->data[t->size + 1] = sptr[1];
+      t->data[t->size + 2] = sptr[2];
+      t->data[t->size + 3] = sptr[3];
+      t->size += 4;
+      sptr += 4;
+      slen -= 4;
+      continue;
+    utf8_1x2:
+      t->data[t->size] = c0;
+      t->data[t->size + 1] = sptr[1];
+      t->size += 2;
+      sptr += 2;
+      slen -= 2;
+      continue;
     }
     c1 = sptr[1];
     if (c0 <= 0xDF) {
