@@ -2,14 +2,7 @@
   "native-stub": [
     "utf8.c"
   ],
-  "link": {
-    "native": {
-      "cc-flags": "-O3",
-      "stub-cc-flags": "-O3"
-    },
-    "llvm": {
-      "cc-flags": "-O3",
-      "stub-cc-flags": "-O3"
-    }
-  }
+  "test-import": [
+    "moonbitlang/x/fs"
+  ]
 }
