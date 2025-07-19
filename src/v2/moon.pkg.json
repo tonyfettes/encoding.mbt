@@ -2,6 +2,11 @@
   "native-stub": [
     "utf8.c"
   ],
+  "link": {
+    "native": {
+      "stub-cc-flags": "-march=native -O3"
+    }
+  },
   "test-import": [
     "moonbitlang/x/fs"
   ]

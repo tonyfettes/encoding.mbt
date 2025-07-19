@@ -114,7 +114,7 @@ test "validate/english" (b : @bench.T) {
 test "validate/chinese" (b : @bench.T) {
   let bytes = @fs.read_file_to_bytes("src/v2/chinese.utf8.txt")
   b.bench(name="naive/validate", () => validate_utf8_naive(bytes) |> ignore())
-  b.bench(name="naive/decode", () => decode_utf8_to_char_array_naive(bytes, []) catch {
+  b.bench(name="naive/decode", () => decode_utf8_to_char_array_vector(bytes, []) catch {
     _ => ()
   })
   b.bench(name="naive/unsafe_decode", () => unsafe_decode_utf8_to_char_array_naive(
