@@ -4,9 +4,9 @@ suberror DecodingError {
 } derive(Show)
 
 ///|
-pub fn decode_utf8_to_char_array_0(
+pub fn decode_utf8_to_char_array_naive(
   bytes : @bytes.View,
-  chars : Array[Char]
+  chars : Array[Char],
 ) -> Unit raise DecodingError {
   chars.reserve_capacity(chars.length() + bytes.length())
   loop bytes {
@@ -70,9 +70,130 @@ pub fn decode_utf8_to_char_array_0(
 }
 
 ///|
-pub fn decode_utf8_to_char_array_1(
+pub fn decode_utf8_to_char_array_vector(
   bytes : @bytes.View,
-  chars : Array[Char]
+  chars : Array[Char],
+) -> Unit raise DecodingError {
+  chars.reserve_capacity(chars.length() + bytes.length())
+  loop bytes {
+    [] => return
+    [
+      0x00..=0x7F as b0,
+      0x00..=0x7F as b1,
+      0x00..=0x7F as b2,
+      0x00..=0x7F as b3,
+      0x00..=0x7F as b4,
+      0x00..=0x7F as b5,
+      0x00..=0x7F as b6,
+      0x00..=0x7F as b7,
+      .. bytes,
+    ] => {
+      chars.push(b0.to_char())
+      chars.push(b1.to_char())
+      chars.push(b2.to_char())
+      chars.push(b3.to_char())
+      chars.push(b4.to_char())
+      chars.push(b5.to_char())
+      chars.push(b6.to_char())
+      chars.push(b7.to_char())
+      continue bytes
+    }
+    [
+      0x00..=0x7F as b0,
+      0x00..=0x7F as b1,
+      0x00..=0x7F as b2,
+      0x00..=0x7F as b3,
+      .. bytes,
+    ] => {
+      chars.push(b0.to_char())
+      chars.push(b1.to_char())
+      chars.push(b2.to_char())
+      chars.push(b3.to_char())
+      continue bytes
+    }
+    [0x00..=0x7F as b0, 0x00..=0x7F as b1, .. bytes] => {
+      chars.push(b0.to_char())
+      chars.push(b1.to_char())
+      continue bytes
+    }
+    [0x00..=0x7F as b0, .. bytes] => {
+      chars.push(b0.to_char())
+      continue bytes
+    }
+    [
+      0xC2..=0xDF as b0,
+      0x80..=0xBF as b1,
+      0xC2..=0xDF as b2,
+      0x80..=0xBF as b3,
+      .. bytes,
+    ] => {
+      let b0 = b0.to_int()
+      let b1 = b1.to_int()
+      let b2 = b2.to_int()
+      let b3 = b3.to_int()
+      let char = ((b0 & 0x1F) << 6) + (b1 & 0x3F)
+      chars.push(char.unsafe_to_char())
+      let char = ((b2 & 0x1F) << 6) + (b3 & 0x3F)
+      chars.push(char.unsafe_to_char())
+      continue bytes
+    }
+    [0xC2..=0xDF as b0, 0x80..=0xBF as b1, .. bytes] => {
+      let b0 = b0.to_int()
+      let b1 = b1.to_int()
+      let char = ((b0 & 0x1F) << 6) + (b1 & 0x3F)
+      chars.push(char.unsafe_to_char())
+      continue bytes
+    }
+    [0xE0 as b0, 0xA0..=0xBF as b1, 0x80..=0xBF as b2, .. bytes]
+    | [0xED as b0, 0x80..=0x9F as b1, 0x80..=0xBF as b2, .. bytes]
+    | [0xE1..=0xEF as b0, 0x80..=0xBF as b1, 0x80..=0xBF as b2, .. bytes] => {
+      let b0 = b0.to_int()
+      let b1 = b1.to_int()
+      let b2 = b2.to_int()
+      let char = ((b0 & 0x0F) << 12) + ((b1 & 0x3F) << 6) + (b2 & 0x3F)
+      chars.push(char.unsafe_to_char())
+      continue bytes
+    }
+    [
+      0xF0 as b0,
+      0x90..=0xBF as b1,
+      0x80..=0xBF as b2,
+      0x80..=0xBF as b3,
+      .. bytes,
+    ]
+    | [
+      0xF1..=0xF3 as b0,
+      0x80..=0xBF as b1,
+      0x80..=0xBF as b2,
+      0x80..=0xBF as b3,
+      .. bytes,
+    ]
+    | [
+      0xF4 as b0,
+      0x80..=0x8F as b1,
+      0x80..=0xBF as b2,
+      0x80..=0xBF as b3,
+      .. bytes,
+    ] => {
+      let b0 = b0.to_int()
+      let b1 = b1.to_int()
+      let b2 = b2.to_int()
+      let b3 = b3.to_int()
+      let char = ((b0 & 0x07) << 18) +
+        ((b1 & 0x3F) << 12) +
+        ((b2 & 0x3F) << 6) +
+        (b3 & 0x3F)
+      chars.push(char.unsafe_to_char())
+      continue bytes
+    }
+    [..] as input => raise DecodingError::Malformed(input)
+  }
+}
+
+///|
+pub fn decode_utf8_to_char_array_regex(
+  bytes : @bytes.View,
+  chars : Array[Char],
 ) -> Unit raise DecodingError {
   chars.reserve_capacity(chars.length() + bytes.length())
   for curr = bytes {
@@ -89,26 +210,19 @@ pub fn decode_utf8_to_char_array_1(
 
 ///|
 #borrow(bytes, chars)
-extern "c" fn moonbit_encoding_v2_utf8_decode_0(
-  bytes : Bytes,
-  bytes_offset : Int,
-  bytes_length : Int,
-  chars : Array[Char]
-) -> Int = "moonbit_encoding_v2_utf8_decode_0"
+extern "c" fn tonyfettes_encoding_v2_decode_utf8_to_char_array(
+  bytes : @bytes.View,
+  chars : Array[Char],
+) -> Int = "tonyfettes_encoding_v2_decode_utf8_to_char_array"
 
 ///|
-pub fn decode_utf8_to_char_array_3(
+pub fn decode_utf8_to_char_array_c(
   bytes : @bytes.View,
-  chars : Array[Char]
+  chars : Array[Char],
 ) -> Unit raise DecodingError {
   chars.reserve_capacity(chars.length() + bytes.length())
-  let result = moonbit_encoding_v2_utf8_decode_0(
-    bytes.data(),
-    bytes.start_offset(),
-    bytes.length(),
-    chars,
-  )
-  if result < 0 {
-    raise DecodingError::Malformed(bytes)
+  let result = tonyfettes_encoding_v2_decode_utf8_to_char_array(bytes, chars)
+  if result >= 0 {
+    raise DecodingError::Malformed(bytes[result:])
   }
 }
