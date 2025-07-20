@@ -382,12 +382,33 @@ tonyfettes_encoding_v2_validate_utf8_to_char_array(struct moonbit_bytes_view s
           slen -= 64;
           tlen += 64;
           continue;
-        } else {
-          size_t step = __builtin_ctzll(mask);
-          sptr += step;
-          slen -= step;
-          tlen += step;
+        } else if ((mask & 0xFFFFFFFF) == 0) {
+          sptr += 32;
+          slen -= 32;
+          tlen += 32;
           continue;
+        } else if ((mask & 0xFFFF) == 0) {
+          sptr += 16;
+          slen -= 16;
+          tlen += 16;
+          continue;
+        } else if ((mask & 0xFF) == 0) {
+          sptr += 8;
+          slen -= 8;
+          tlen += 8;
+          continue;
+        } else if ((mask & 0xF) == 0) {
+          sptr += 4;
+          slen -= 4;
+          tlen += 4;
+          continue;
+        } else if ((mask & 0x3) == 0) {
+          sptr += 2;
+          slen -= 2;
+          tlen += 2;
+          continue;
+        } else {
+          goto utf8_1_byte;
         }
       } else if (slen >= 32) {
         __m256i data = _mm256_loadu_si256((const __m256i *)sptr);
@@ -528,6 +549,36 @@ tonyfettes_encoding_v2_validate_utf8_to_char_array(struct moonbit_bytes_view s
     c2 = sptr[2];
     if (c0 == 0xE0) {
       if ((c1 >= 0xA0 && c1 <= 0xBF) && (c2 >= 0x80 && c2 <= 0xBF)) {
+        goto utf8_3_bytes;
+      } else {
+        goto malformed;
+      }
+    }
+    if (c0 <= 0xEC) {
+      if ((c1 >= 0x80 && c1 <= 0xBF) && (c2 >= 0x80 && c2 <= 0xBF)) {
+        if (slen >= 12) {
+          c3 = sptr[3];
+          unsigned char c4 = sptr[4];
+          unsigned char c5 = sptr[5];
+          unsigned char c6 = sptr[6];
+          unsigned char c7 = sptr[7];
+          unsigned char c8 = sptr[8];
+          unsigned char c9 = sptr[9];
+          unsigned char c10 = sptr[10];
+          unsigned char c11 = sptr[11];
+          if ((c3 >= 0xE1 && c3 <= 0xEC) && (c4 >= 0x80 && c4 <= 0xBF) &&
+              (c5 >= 0x80 && c5 <= 0xBF) && (c6 >= 0xE1 && c6 <= 0xEC) &&
+              (c7 >= 0x80 && c7 <= 0xBF) && (c8 >= 0x80 && c8 <= 0xBF) &&
+              (c9 >= 0xE1 && c9 <= 0xEC) && (c10 >= 0x80 && c10 <= 0xBF) &&
+              (c11 >= 0x80 && c11 <= 0xBF)) {
+            tlen += 3;
+            sptr += 12;
+            slen -= 12;
+            continue;
+          } else {
+            goto utf8_3_bytes;
+          }
+        }
         goto utf8_3_bytes;
       } else {
         goto malformed;
