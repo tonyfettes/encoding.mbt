@@ -280,7 +280,7 @@ pub fn decode_utf8_to_char_array_c(
   bytes : @bytes.View,
   chars : Array[Char]
 ) -> Unit raise DecodingError {
-  chars.reserve_capacity(chars.length() + bytes.length())
+  // chars.reserve_capacity(chars.length() + bytes.length())
   let result = tonyfettes_encoding_v2_decode_utf8_to_char_array(bytes, chars)
   if result >= 0 {
     raise DecodingError::Malformed(bytes[result:])

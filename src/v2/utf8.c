@@ -3,11 +3,56 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 struct moonbit_int32_array {
   int32_t size;
   int32_t *data;
 };
+
+static inline void *
+moonbit_malloc_array(
+  enum moonbit_block_kind kind,
+  int elem_size_shift,
+  int32_t len
+) {
+  struct moonbit_object *obj = (struct moonbit_object *)malloc(
+    (len << elem_size_shift) + sizeof(struct moonbit_object)
+  );
+  obj->rc = 1;
+  obj->meta = Moonbit_make_array_header(kind, elem_size_shift, len);
+  return obj + 1;
+}
+
+static inline int32_t *
+moonbit_make_int32_array_unsafe(int32_t len) {
+  return moonbit_malloc_array(moonbit_BLOCK_KIND_VAL_ARRAY, 2, len);
+}
+
+static inline void
+moonbit_int32_array_reserve(
+  struct moonbit_int32_array *restrict array,
+  int32_t by
+) {
+  int32_t required = array->size + by;
+  int32_t capacity = Moonbit_array_length(array->data);
+  if (required <= capacity) {
+    return;
+  }
+  if (capacity < 8) {
+    capacity = 8;
+  }
+  do {
+    capacity *= 2;
+  } while (capacity < required);
+  struct moonbit_object *header = Moonbit_object_header(array->data);
+  if (array->data == moonbit_empty_int32_array) {
+    array->data = moonbit_make_int32_array_unsafe(capacity);
+  } else {
+    header = realloc(header, sizeof(struct moonbit_object) + (capacity << 2));
+    array->data = (int32_t *)(header + 1);
+  }
+}
 
 struct moonbit_bytes_view {
   int32_t offset;
@@ -22,6 +67,7 @@ tonyfettes_encoding_v2_decode_utf8_to_char_array(
 ) {
   unsigned char *sptr = s.bytes + s.offset;
   int32_t slen = s.length;
+  moonbit_int32_array_reserve(t, slen);
   while (true) {
     unsigned char c0;
     unsigned char c1;
