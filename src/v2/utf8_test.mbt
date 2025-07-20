@@ -1,5 +1,5 @@
 ///|
-test {
+test "decode" {
   for
     path in [
       "src/v2/utf8-test.txt", "unicode_lipsum/wikipedia_mars/chinese.utf8.txt", "unicode_lipsum/wikipedia_mars/english.utf8.txt",
@@ -17,6 +17,22 @@ test {
     let values_c = []
     decode_utf8_to_char_array_c(bytes, values_c)
     assert_eq(values_naive, values_c)
+  }
+}
+///|
+test "validate" {
+  for c0 = b'\x00'; c0 < '\xFF'; c0 = c0 + 1 {
+    for c1 = b'\xED'; c1 < '\xFF'; c1 = c1 + 1 {
+      for c2 = b'\xA0'; c2 < '\xFF'; c2 = c2 + 1 {
+        for c3 = b'\x80'; c3 < '\xFF'; c3 = c3 + 1 {
+          let bytes : Bytes = [c0, c1, c2, c3]
+          if validate_utf8_naive(bytes) != validate_utf8_c(bytes) {
+            println("validate_utf8_naive and validate_utf8_c disagree on: \{bytes}")
+          }
+          assert_eq(validate_utf8_naive(bytes), validate_utf8_c(bytes))
+        }
+      }
+    }
   }
 }
 

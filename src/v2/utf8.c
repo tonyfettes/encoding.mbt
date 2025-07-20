@@ -358,163 +358,22 @@ tonyfettes_encoding_v2_decode_utf8_to_char_array(
   }
 }
 
-MOONBIT_FFI_EXPORT int
+MOONBIT_FFI_EXPORT bool
 tonyfettes_encoding_v2_validate_utf8_to_char_array(struct moonbit_bytes_view s
 ) {
   const unsigned char *sptr = s.bytes + s.offset;
   int32_t slen = s.length;
-  int32_t tlen = 0;
   while (true) {
     unsigned char c0;
     unsigned char c1;
     unsigned char c2;
     unsigned char c3;
     if (slen == 0) {
-      return tlen;
+      return true;
     }
     c0 = sptr[0];
     if (c0 <= 0x7F) {
-      if (slen >= 64) {
-        __m512i data = _mm512_loadu_si512((const __m512i *)sptr);
-        __mmask64 mask = _mm512_test_epi8_mask(data, _mm512_set1_epi8(0x80));
-        if (mask == 0) {
-          sptr += 64;
-          slen -= 64;
-          tlen += 64;
-          continue;
-        } else if ((mask & 0xFFFFFFFF) == 0) {
-          sptr += 32;
-          slen -= 32;
-          tlen += 32;
-          continue;
-        } else if ((mask & 0xFFFF) == 0) {
-          sptr += 16;
-          slen -= 16;
-          tlen += 16;
-          continue;
-        } else if ((mask & 0xFF) == 0) {
-          sptr += 8;
-          slen -= 8;
-          tlen += 8;
-          continue;
-        } else if ((mask & 0xF) == 0) {
-          sptr += 4;
-          slen -= 4;
-          tlen += 4;
-          continue;
-        } else if ((mask & 0x3) == 0) {
-          sptr += 2;
-          slen -= 2;
-          tlen += 2;
-          continue;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else if (slen >= 32) {
-        __m256i data = _mm256_loadu_si256((const __m256i *)sptr);
-        __mmask32 mask = _mm256_test_epi8_mask(data, _mm256_set1_epi8(0x80));
-        if (mask == 0) {
-          sptr += 32;
-          slen -= 32;
-          tlen += 32;
-          continue;
-        } else if ((mask & 0xFFFF) == 0) {
-          sptr += 16;
-          slen -= 16;
-          tlen += 16;
-          continue;
-        } else if ((mask & 0xFF) == 0) {
-          sptr += 8;
-          slen -= 8;
-          tlen += 8;
-          continue;
-        } else if ((mask & 0xF) == 0) {
-          sptr += 4;
-          slen -= 4;
-          tlen += 4;
-          continue;
-        } else if ((mask & 0x3) == 0) {
-          sptr += 2;
-          slen -= 2;
-          tlen += 2;
-          continue;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else if (slen >= 16) {
-        __m128i data = _mm_loadu_si128((const __m128i *)sptr);
-        __mmask16 mask = _mm_test_epi8_mask(data, _mm_set1_epi8(0x80));
-        if (mask == 0) {
-          sptr += 16;
-          slen -= 16;
-          tlen += 16;
-          continue;
-        } else if ((mask & 0xFF) == 0) {
-          sptr += 8;
-          slen -= 8;
-          tlen += 8;
-          continue;
-        } else if ((mask & 0xF) == 0) {
-          sptr += 4;
-          slen -= 4;
-          tlen += 4;
-          continue;
-        } else if ((mask & 0x3) == 0) {
-          sptr += 2;
-          slen -= 2;
-          tlen += 2;
-          continue;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else if (slen >= 8) {
-        uint64_t data = *(const uint64_t *)sptr;
-        if ((data & 0x8080808080808080ULL) == 0) {
-          sptr += 8;
-          slen -= 8;
-          tlen += 8;
-          continue;
-        } else if ((data & 0x80808080ULL) == 0) {
-          sptr += 4;
-          slen -= 4;
-          tlen += 4;
-          continue;
-        } else if ((data & 0x8080ULL) == 0) {
-          sptr += 2;
-          slen -= 2;
-          tlen += 2;
-          continue;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else if (slen >= 4) {
-        uint32_t data = *(const uint32_t *)sptr;
-        if ((data & 0x80808080U) == 0) {
-          sptr += 4;
-          slen -= 4;
-          tlen += 4;
-          continue;
-        } else if ((data & 0x8080U) == 0) {
-          sptr += 2;
-          slen -= 2;
-          tlen += 2;
-          continue;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else if (slen >= 2) {
-        unsigned char c1 = sptr[1];
-        if (c1 <= 0x7F) {
-          sptr += 2;
-          slen -= 2;
-          tlen += 2;
-          continue;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else {
-        goto utf8_1_byte;
-      }
+      goto utf8_1_byte;
     }
     if (c0 <= 0xC1) {
       goto malformed;
@@ -525,20 +384,7 @@ tonyfettes_encoding_v2_validate_utf8_to_char_array(struct moonbit_bytes_view s
     c1 = sptr[1];
     if (c0 <= 0xDF) {
       if (c1 >= 0x80 && c1 <= 0xBF) {
-        if (slen >= 4) {
-          c2 = sptr[2];
-          c3 = sptr[3];
-          if (c2 >= 0xC2 && c2 <= 0xDF && c3 >= 0x80 && c3 <= 0xBF) {
-            sptr += 4;
-            slen -= 4;
-            tlen += 2;
-            continue;
-          } else {
-            goto utf8_2_bytes;
-          }
-        } else {
-          goto utf8_2_bytes;
-        }
+        goto utf8_2_bytes;
       } else {
         goto malformed;
       }
@@ -556,29 +402,6 @@ tonyfettes_encoding_v2_validate_utf8_to_char_array(struct moonbit_bytes_view s
     }
     if (c0 <= 0xEC) {
       if ((c1 >= 0x80 && c1 <= 0xBF) && (c2 >= 0x80 && c2 <= 0xBF)) {
-        if (slen >= 12) {
-          c3 = sptr[3];
-          unsigned char c4 = sptr[4];
-          unsigned char c5 = sptr[5];
-          unsigned char c6 = sptr[6];
-          unsigned char c7 = sptr[7];
-          unsigned char c8 = sptr[8];
-          unsigned char c9 = sptr[9];
-          unsigned char c10 = sptr[10];
-          unsigned char c11 = sptr[11];
-          if ((c3 >= 0xE1 && c3 <= 0xEC) && (c4 >= 0x80 && c4 <= 0xBF) &&
-              (c5 >= 0x80 && c5 <= 0xBF) && (c6 >= 0xE1 && c6 <= 0xEC) &&
-              (c7 >= 0x80 && c7 <= 0xBF) && (c8 >= 0x80 && c8 <= 0xBF) &&
-              (c9 >= 0xE1 && c9 <= 0xEC) && (c10 >= 0x80 && c10 <= 0xBF) &&
-              (c11 >= 0x80 && c11 <= 0xBF)) {
-            tlen += 3;
-            sptr += 12;
-            slen -= 12;
-            continue;
-          } else {
-            goto utf8_3_bytes;
-          }
-        }
         goto utf8_3_bytes;
       } else {
         goto malformed;
@@ -630,25 +453,21 @@ tonyfettes_encoding_v2_validate_utf8_to_char_array(struct moonbit_bytes_view s
   utf8_1_byte:
     sptr += 1;
     slen -= 1;
-    tlen += 1;
     continue;
   utf8_2_bytes:
     sptr += 2;
     slen -= 2;
-    tlen += 1;
     continue;
   utf8_3_bytes:
     sptr += 3;
     slen -= 3;
-    tlen += 1;
     continue;
   utf8_4_bytes:
     sptr += 4;
     slen -= 4;
-    tlen += 1;
     continue;
   malformed:
-    return -1;
+    return false;
   }
 }
 
