@@ -332,33 +332,12 @@ tonyfettes_encoding_v2_validate_utf8_to_char_array(struct moonbit_bytes_view s
           slen -= 64;
           tlen += 64;
           continue;
-        } else if ((mask & 0xFFFFFFFF) == 0) {
-          sptr += 32;
-          slen -= 32;
-          tlen += 32;
-          continue;
-        } else if ((mask & 0xFFFF) == 0) {
-          sptr += 16;
-          slen -= 16;
-          tlen += 16;
-          continue;
-        } else if ((mask & 0xFF) == 0) {
-          sptr += 8;
-          slen -= 8;
-          tlen += 8;
-          continue;
-        } else if ((mask & 0xF) == 0) {
-          sptr += 4;
-          slen -= 4;
-          tlen += 4;
-          continue;
-        } else if ((mask & 0x3) == 0) {
-          sptr += 2;
-          slen -= 2;
-          tlen += 2;
-          continue;
         } else {
-          goto utf8_1_byte;
+          size_t step = __builtin_ctzll(mask);
+          sptr += step;
+          slen -= step;
+          tlen += step;
+          continue;
         }
       } else if (slen >= 32) {
         __m256i data = _mm256_loadu_si256((const __m256i *)sptr);
