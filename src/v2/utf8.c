@@ -2,8 +2,6 @@
 #include <immintrin.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 
 struct moonbit_int32_array {
   int32_t size;
@@ -35,23 +33,25 @@ moonbit_int32_array_reserve(
   int32_t by
 ) {
   int32_t required = array->size + by;
-  int32_t capacity = Moonbit_array_length(array->data);
-  if (required <= capacity) {
+  int32_t capacity;
+  if (array->data == moonbit_empty_int32_array) {
+    capacity = 8;
+    do {
+      capacity *= 2;
+    } while (capacity < required);
+    array->data = moonbit_make_int32_array_unsafe(capacity);
     return;
   }
-  if (capacity < 8) {
-    capacity = 8;
+  capacity = Moonbit_array_length(array->data);
+  if (required <= capacity) {
+    return;
   }
   do {
     capacity *= 2;
   } while (capacity < required);
   struct moonbit_object *header = Moonbit_object_header(array->data);
-  if (array->data == moonbit_empty_int32_array) {
-    array->data = moonbit_make_int32_array_unsafe(capacity);
-  } else {
-    header = realloc(header, sizeof(struct moonbit_object) + (capacity << 2));
-    array->data = (int32_t *)(header + 1);
-  }
+  header = realloc(header, sizeof(struct moonbit_object) + (capacity << 2));
+  array->data = (int32_t *)(header + 1);
 }
 
 struct moonbit_bytes_view {
@@ -62,152 +62,29 @@ struct moonbit_bytes_view {
 
 MOONBIT_FFI_EXPORT int
 tonyfettes_encoding_v2_decode_utf8_to_char_array(
-  struct moonbit_bytes_view s,
+  moonbit_bytes_t s,
+  int32_t soff,
+  int32_t slen,
   struct moonbit_int32_array *restrict t
 ) {
-  unsigned char *sptr = s.bytes + s.offset;
-  int32_t slen = s.length;
+  unsigned char *sptr = s + soff;
   moonbit_int32_array_reserve(t, slen);
   int32_t *restrict tptr = t->data + t->size;
-  int32_t tlen = 0;
   while (true) {
     unsigned char c0;
     unsigned char c1;
     unsigned char c2;
     unsigned char c3;
     if (slen == 0) {
-      t->size += tlen;
+      t->size += tptr - t->data;
       return -1;
     }
     c0 = sptr[0];
     if (c0 <= 0x7F) {
-      if (slen >= 64) {
-        __m512i data = _mm512_loadu_si512((const __m512i *)sptr);
-        __mmask64 mask = _mm512_test_epi8_mask(data, _mm512_set1_epi8(0x80));
-        if (mask == 0) {
-          __m128i b0 = _mm512_extracti32x4_epi32(data, 0);
-          __m128i b1 = _mm512_extracti32x4_epi32(data, 1);
-          __m128i b2 = _mm512_extracti32x4_epi32(data, 2);
-          __m128i b3 = _mm512_extracti32x4_epi32(data, 3);
-          __m512i q0 = _mm512_cvtepu8_epi32(b0);
-          __m512i q1 = _mm512_cvtepu8_epi32(b1);
-          __m512i q2 = _mm512_cvtepu8_epi32(b2);
-          __m512i q3 = _mm512_cvtepu8_epi32(b3);
-          _mm512_storeu_si512((__m512i *)&tptr[tlen], q0);
-          _mm512_storeu_si512((__m512i *)&tptr[tlen + 16], q1);
-          _mm512_storeu_si512((__m512i *)&tptr[tlen + 32], q2);
-          _mm512_storeu_si512((__m512i *)&tptr[tlen + 48], q3);
-          tlen += 64;
-          sptr += 64;
-          slen -= 64;
-          continue;
-        } else if ((mask & 0xFFFFFFFF) == 0) {
-          __m128i b0 = _mm512_extracti32x4_epi32(data, 0);
-          __m128i b1 = _mm512_extracti32x4_epi32(data, 1);
-          __m512i q0 = _mm512_cvtepu8_epi32(b0);
-          __m512i q1 = _mm512_cvtepu8_epi32(b1);
-          _mm512_storeu_si512((__m512i *)&tptr[tlen], q0);
-          _mm512_storeu_si512((__m512i *)&tptr[tlen + 16], q1);
-          tlen += 32;
-          sptr += 32;
-          slen -= 32;
-          continue;
-        } else if ((mask & 0xFFFF) == 0) {
-          __m128i b0 = _mm512_extracti32x4_epi32(data, 0);
-          __m512i q0 = _mm512_cvtepu8_epi32(b0);
-          _mm512_storeu_si512((__m512i *)&tptr[tlen], q0);
-          tlen += 16;
-          sptr += 16;
-          slen -= 16;
-          continue;
-        } else if ((mask & 0xFF) == 0) {
-          goto utf8_1x8;
-        } else if ((mask & 0xF) == 0) {
-          goto utf8_1x4;
-        } else if ((mask & 0x3) == 0) {
-          goto utf8_1x2;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else if (slen >= 32) {
-        __m256i data = _mm256_loadu_si256((const __m256i *)sptr);
-        __mmask32 mask = _mm256_test_epi8_mask(data, _mm256_set1_epi8(0x80));
-        if (mask == 0) {
-          __m128i b0 = _mm256_extracti128_si256(data, 0);
-          __m128i b1 = _mm256_extracti128_si256(data, 1);
-          __m512i q0 = _mm512_cvtepu8_epi32(b0);
-          __m512i q1 = _mm512_cvtepu8_epi32(b1);
-          _mm512_storeu_si512((__m512i *)&tptr[tlen], q0);
-          _mm512_storeu_si512((__m512i *)&tptr[tlen + 16], q1);
-          tlen += 32;
-          sptr += 32;
-          slen -= 32;
-          continue;
-        } else if ((mask & 0xFFFF) == 0) {
-          __m128i b0 = _mm256_extracti128_si256(data, 0);
-          __m512i q0 = _mm512_cvtepu8_epi32(b0);
-          _mm512_storeu_si512((__m512i *)&tptr[tlen], q0);
-          tlen += 16;
-          sptr += 16;
-          slen -= 16;
-          continue;
-        } else if ((mask & 0xFF) == 0) {
-          goto utf8_1x8;
-        } else if ((mask & 0xF) == 0) {
-          goto utf8_1x4;
-        } else if ((mask & 0x3) == 0) {
-          goto utf8_1x2;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else if (slen >= 16) {
-        __m128i data = _mm_loadu_si128((const __m128i *)sptr);
-        __mmask16 mask = _mm_test_epi8_mask(data, _mm_set1_epi8(0x80));
-        if (mask == 0) {
-          __m512i q0 = _mm512_cvtepu8_epi32(data);
-          _mm512_storeu_si512((__m512i *)&tptr[tlen], q0);
-          tlen += 16;
-          sptr += 16;
-          slen -= 16;
-          continue;
-        } else if ((mask & 0xFF) == 0) {
-          goto utf8_1x8;
-        } else if ((mask & 0xF) == 0) {
-          goto utf8_1x4;
-        } else if ((mask & 0x3) == 0) {
-          goto utf8_1x2;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else if (slen >= 8) {
+      if (slen >= 8) {
         uint64_t data = *(const uint64_t *)sptr;
         if ((data & 0x8080808080808080ULL) == 0) {
           goto utf8_1x8;
-        } else if ((data & 0x80808080ULL) == 0) {
-          goto utf8_1x4;
-        } else if ((data & 0x8080ULL) == 0) {
-          goto utf8_1x2;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else if (slen >= 4) {
-        uint32_t data = *(const uint32_t *)sptr;
-        if ((data & 0x80808080U) == 0) {
-          goto utf8_1x4;
-        } else if ((data & 0x8080U) == 0) {
-          goto utf8_1x2;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else if (slen >= 2) {
-        unsigned char c1 = sptr[1];
-        if (c1 <= 0x7F) {
-          tptr[tlen] = c0;
-          tptr[tlen + 1] = c1;
-          tlen += 2;
-          sptr += 2;
-          slen -= 2;
-          continue;
         } else {
           goto utf8_1_byte;
         }
@@ -215,33 +92,17 @@ tonyfettes_encoding_v2_decode_utf8_to_char_array(
         goto utf8_1_byte;
       }
     utf8_1x8:
-      tptr[tlen] = c0;
-      tptr[tlen + 1] = sptr[1];
-      tptr[tlen + 2] = sptr[2];
-      tptr[tlen + 3] = sptr[3];
-      tptr[tlen + 4] = sptr[4];
-      tptr[tlen + 5] = sptr[5];
-      tptr[tlen + 6] = sptr[6];
-      tptr[tlen + 7] = sptr[7];
-      tlen += 8;
+      tptr[0] = sptr[0];
+      tptr[1] = sptr[1];
+      tptr[2] = sptr[2];
+      tptr[3] = sptr[3];
+      tptr[4] = sptr[4];
+      tptr[5] = sptr[5];
+      tptr[6] = sptr[6];
+      tptr[7] = sptr[7];
+      tptr += 8;
       sptr += 8;
       slen -= 8;
-      continue;
-    utf8_1x4:
-      tptr[tlen] = c0;
-      tptr[tlen + 1] = sptr[1];
-      tptr[tlen + 2] = sptr[2];
-      tptr[tlen + 3] = sptr[3];
-      tlen += 4;
-      sptr += 4;
-      slen -= 4;
-      continue;
-    utf8_1x2:
-      tptr[tlen] = c0;
-      tptr[tlen + 1] = sptr[1];
-      tlen += 2;
-      sptr += 2;
-      slen -= 2;
       continue;
     }
     if (c0 <= 0xC1) {
@@ -257,9 +118,9 @@ tonyfettes_encoding_v2_decode_utf8_to_char_array(
           c2 = sptr[2];
           c3 = sptr[3];
           if (c2 >= 0xC2 && c2 <= 0xDF && c3 >= 0x80 && c3 <= 0xBF) {
-            tptr[tlen] = ((c0 & 0x1F) << 6) | (c1 & 0x3F);
-            tptr[tlen + 1] = ((c2 & 0x1F) << 6) | (c3 & 0x3F);
-            tlen += 2;
+            tptr[0] = ((c0 & 0x1F) << 6) | (c1 & 0x3F);
+            tptr[1] = ((c2 & 0x1F) << 6) | (c3 & 0x3F);
+            tptr += 2;
             sptr += 4;
             slen -= 4;
             continue;
@@ -328,41 +189,43 @@ tonyfettes_encoding_v2_decode_utf8_to_char_array(
     }
     goto malformed;
   utf8_1_byte:
-    tptr[tlen] = c0;
-    tlen++;
+    tptr[0] = c0;
+    tptr++;
     sptr += 1;
     slen -= 1;
     continue;
   utf8_2_bytes:
-    tptr[tlen] = ((c0 & 0x1F) << 6) | (c1 & 0x3F);
-    tlen++;
+    tptr[0] = ((c0 & 0x1F) << 6) | (c1 & 0x3F);
+    tptr++;
     sptr += 2;
     slen -= 2;
     continue;
   utf8_3_bytes:
-    tptr[tlen] = ((c0 & 0x0F) << 12) | ((c1 & 0x3F) << 6) | (c2 & 0x3F);
-    tlen++;
+    tptr[0] = ((c0 & 0x0F) << 12) | ((c1 & 0x3F) << 6) | (c2 & 0x3F);
+    tptr++;
     sptr += 3;
     slen -= 3;
     continue;
   utf8_4_bytes:
-    tptr[tlen] = ((c0 & 0x07) << 18) | ((c1 & 0x3F) << 12) |
-                 ((c2 & 0x3F) << 6) | (c3 & 0x3F);
-    tlen++;
+    tptr[0] = ((c0 & 0x07) << 18) | ((c1 & 0x3F) << 12) | ((c2 & 0x3F) << 6) |
+              (c3 & 0x3F);
+    tptr++;
     sptr += 4;
     slen -= 4;
     continue;
   malformed:
-    t->size += tlen;
-    return sptr - s.bytes + s.offset;
+    t->size += tptr - t->data;
+    return sptr - s + soff;
   }
 }
 
 MOONBIT_FFI_EXPORT bool
-tonyfettes_encoding_v2_validate_utf8_to_char_array(struct moonbit_bytes_view s
+tonyfettes_encoding_v2_validate_utf8(
+  moonbit_bytes_t s,
+  int32_t soff,
+  int32_t slen
 ) {
-  const unsigned char *sptr = s.bytes + s.offset;
-  int32_t slen = s.length;
+  const unsigned char *sptr = s + soff;
   while (true) {
     unsigned char c0;
     unsigned char c1;
@@ -373,17 +236,36 @@ tonyfettes_encoding_v2_validate_utf8_to_char_array(struct moonbit_bytes_view s
     }
     c0 = sptr[0];
     if (c0 <= 0x7F) {
-      goto utf8_1_byte;
+      size_t i = 1;
+      if (slen >= 8) {
+        uint64_t data = *(const uint64_t *)sptr;
+        if ((data & 0x8080808080808080ULL) == 0) {
+          i = 8;
+        } else if ((data & 0x80808080ULL) == 0) {
+          i = 4;
+        } else if ((data & 0x8080ULL) == 0) {
+          i = 2;
+        }
+      }
+      sptr += i;
+      slen -= i;
+      continue;
     }
-    if (c0 <= 0xC1) {
-      goto malformed;
-    }
-    if (slen < 2) {
+    if (c0 <= 0xC1 || slen < 2) {
       goto malformed;
     }
     c1 = sptr[1];
     if (c0 <= 0xDF) {
       if (c1 >= 0x80 && c1 <= 0xBF) {
+        if (slen >= 4) {
+          c2 = sptr[2];
+          c3 = sptr[3];
+          if (c2 >= 0xC2 && c2 <= 0xDF && c3 >= 0x80 && c3 <= 0xBF) {
+            sptr += 4;
+            slen -= 4;
+            continue;
+          }
+        }
         goto utf8_2_bytes;
       } else {
         goto malformed;
@@ -473,145 +355,29 @@ tonyfettes_encoding_v2_validate_utf8_to_char_array(struct moonbit_bytes_view s
 
 MOONBIT_FFI_EXPORT void
 tonyfettes_encoding_v2_unsafe_decode_utf8_to_char_array(
-  struct moonbit_bytes_view s,
+  moonbit_bytes_t s,
+  int32_t soff,
+  int32_t slen,
   struct moonbit_int32_array *restrict t
 ) {
-  const unsigned char *sptr = s.bytes + s.offset;
-  int32_t slen = s.length;
-  while (slen > 0) {
+  unsigned char *sptr = s + soff;
+  moonbit_int32_array_reserve(t, slen);
+  int32_t *restrict tptr = t->data + t->size;
+  while (true) {
     unsigned char c0;
     unsigned char c1;
     unsigned char c2;
     unsigned char c3;
+    if (slen == 0) {
+      t->size += tptr - t->data;
+      return;
+    }
     c0 = sptr[0];
     if (c0 <= 0x7F) {
-      if (slen >= 64) {
-        __m512i data = _mm512_loadu_si512((const __m512i *)sptr);
-        __mmask64 mask = _mm512_test_epi8_mask(data, _mm512_set1_epi8(0x80));
-        if (mask == 0) {
-          __m128i b0 = _mm512_extracti32x4_epi32(data, 0);
-          __m128i b1 = _mm512_extracti32x4_epi32(data, 1);
-          __m128i b2 = _mm512_extracti32x4_epi32(data, 2);
-          __m128i b3 = _mm512_extracti32x4_epi32(data, 3);
-          __m512i q0 = _mm512_cvtepu8_epi32(b0);
-          __m512i q1 = _mm512_cvtepu8_epi32(b1);
-          __m512i q2 = _mm512_cvtepu8_epi32(b2);
-          __m512i q3 = _mm512_cvtepu8_epi32(b3);
-          _mm512_storeu_si512((__m512i *)&t->data[t->size], q0);
-          _mm512_storeu_si512((__m512i *)&t->data[t->size + 16], q1);
-          _mm512_storeu_si512((__m512i *)&t->data[t->size + 32], q2);
-          _mm512_storeu_si512((__m512i *)&t->data[t->size + 48], q3);
-          t->size += 64;
-          sptr += 64;
-          slen -= 64;
-          continue;
-        } else if ((mask & 0xFFFFFFFF) == 0) {
-          __m128i b0 = _mm512_extracti32x4_epi32(data, 0);
-          __m128i b1 = _mm512_extracti32x4_epi32(data, 1);
-          __m512i q0 = _mm512_cvtepu8_epi32(b0);
-          __m512i q1 = _mm512_cvtepu8_epi32(b1);
-          _mm512_storeu_si512((__m512i *)&t->data[t->size], q0);
-          _mm512_storeu_si512((__m512i *)&t->data[t->size + 16], q1);
-          t->size += 32;
-          sptr += 32;
-          slen -= 32;
-          continue;
-        } else if ((mask & 0xFFFF) == 0) {
-          __m128i b0 = _mm512_extracti32x4_epi32(data, 0);
-          __m512i q0 = _mm512_cvtepu8_epi32(b0);
-          _mm512_storeu_si512((__m512i *)&t->data[t->size], q0);
-          t->size += 16;
-          sptr += 16;
-          slen -= 16;
-          continue;
-        } else if ((mask & 0xFF) == 0) {
-          goto utf8_1x8;
-        } else if ((mask & 0xF) == 0) {
-          goto utf8_1x4;
-        } else if ((mask & 0x3) == 0) {
-          goto utf8_1x2;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else if (slen >= 32) {
-        __m256i data = _mm256_loadu_si256((const __m256i *)sptr);
-        __mmask32 mask = _mm256_test_epi8_mask(data, _mm256_set1_epi8(0x80));
-        if (mask == 0) {
-          __m128i b0 = _mm256_extracti128_si256(data, 0);
-          __m128i b1 = _mm256_extracti128_si256(data, 1);
-          __m512i q0 = _mm512_cvtepu8_epi32(b0);
-          __m512i q1 = _mm512_cvtepu8_epi32(b1);
-          _mm512_storeu_si512((__m512i *)&t->data[t->size], q0);
-          _mm512_storeu_si512((__m512i *)&t->data[t->size + 16], q1);
-          t->size += 32;
-          sptr += 32;
-          slen -= 32;
-          continue;
-        } else if ((mask & 0xFFFF) == 0) {
-          __m128i b0 = _mm256_extracti128_si256(data, 0);
-          __m512i q0 = _mm512_cvtepu8_epi32(b0);
-          _mm512_storeu_si512((__m512i *)&t->data[t->size], q0);
-          t->size += 16;
-          sptr += 16;
-          slen -= 16;
-          continue;
-        } else if ((mask & 0xFF) == 0) {
-          goto utf8_1x8;
-        } else if ((mask & 0xF) == 0) {
-          goto utf8_1x4;
-        } else if ((mask & 0x3) == 0) {
-          goto utf8_1x2;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else if (slen >= 16) {
-        __m128i data = _mm_loadu_si128((const __m128i *)sptr);
-        __mmask16 mask = _mm_test_epi8_mask(data, _mm_set1_epi8(0x80));
-        if (mask == 0) {
-          __m512i q0 = _mm512_cvtepu8_epi32(data);
-          _mm512_storeu_si512((__m512i *)&t->data[t->size], q0);
-          t->size += 16;
-          sptr += 16;
-          slen -= 16;
-          continue;
-        } else if ((mask & 0xFF) == 0) {
-          goto utf8_1x8;
-        } else if ((mask & 0xF) == 0) {
-          goto utf8_1x4;
-        } else if ((mask & 0x3) == 0) {
-          goto utf8_1x2;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else if (slen >= 8) {
+      if (slen >= 8) {
         uint64_t data = *(const uint64_t *)sptr;
         if ((data & 0x8080808080808080ULL) == 0) {
           goto utf8_1x8;
-        } else if ((data & 0x80808080ULL) == 0) {
-          goto utf8_1x4;
-        } else if ((data & 0x8080ULL) == 0) {
-          goto utf8_1x2;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else if (slen >= 4) {
-        uint32_t data = *(const uint32_t *)sptr;
-        if ((data & 0x80808080U) == 0) {
-          goto utf8_1x4;
-        } else if ((data & 0x8080U) == 0) {
-          goto utf8_1x2;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else if (slen >= 2) {
-        unsigned char c1 = sptr[1];
-        if (c1 <= 0x7F) {
-          t->data[t->size] = c0;
-          t->data[t->size + 1] = c1;
-          t->size += 2;
-          sptr += 2;
-          slen -= 2;
-          continue;
         } else {
           goto utf8_1_byte;
         }
@@ -619,53 +385,30 @@ tonyfettes_encoding_v2_unsafe_decode_utf8_to_char_array(
         goto utf8_1_byte;
       }
     utf8_1x8:
-      t->data[t->size] = c0;
-      t->data[t->size + 1] = sptr[1];
-      t->data[t->size + 2] = sptr[2];
-      t->data[t->size + 3] = sptr[3];
-      t->data[t->size + 4] = sptr[4];
-      t->data[t->size + 5] = sptr[5];
-      t->data[t->size + 6] = sptr[6];
-      t->data[t->size + 7] = sptr[7];
-      t->size += 8;
+      tptr[0] = sptr[0];
+      tptr[1] = sptr[1];
+      tptr[2] = sptr[2];
+      tptr[3] = sptr[3];
+      tptr[4] = sptr[4];
+      tptr[5] = sptr[5];
+      tptr[6] = sptr[6];
+      tptr[7] = sptr[7];
+      tptr += 8;
       sptr += 8;
       slen -= 8;
-      continue;
-    utf8_1x4:
-      t->data[t->size] = c0;
-      t->data[t->size + 1] = sptr[1];
-      t->data[t->size + 2] = sptr[2];
-      t->data[t->size + 3] = sptr[3];
-      t->size += 4;
-      sptr += 4;
-      slen -= 4;
-      continue;
-    utf8_1x2:
-      t->data[t->size] = c0;
-      t->data[t->size + 1] = sptr[1];
-      t->size += 2;
-      sptr += 2;
-      slen -= 2;
       continue;
     }
     c1 = sptr[1];
     if (c0 <= 0xDF) {
-      if (slen >= 8) {
-        unsigned char c2 = sptr[2];
-        unsigned char c3 = sptr[3];
-        unsigned char c4 = sptr[4];
-        unsigned char c5 = sptr[5];
-        unsigned char c6 = sptr[6];
-        unsigned char c7 = sptr[7];
-        if (c2 >= 0xC0 && c2 <= 0xDF && c4 >= 0xC0 && c4 <= 0xDF &&
-            c6 >= 0xC0 && c6 <= 0xDF) {
-          t->data[t->size] = ((c0 & 0x1F) << 6) | (c1 & 0x3F);
-          t->data[t->size + 1] = ((c2 & 0x1F) << 6) | (c3 & 0x3F);
-          t->data[t->size + 2] = ((c4 & 0x1F) << 6) | (c5 & 0x3F);
-          t->data[t->size + 3] = ((c6 & 0x1F) << 6) | (c7 & 0x3F);
-          t->size += 4;
-          sptr += 8;
-          slen -= 8;
+      if (slen >= 4) {
+        c2 = sptr[2];
+        c3 = sptr[3];
+        if (c2 >= 0xC2 && c2 <= 0xDF) {
+          tptr[0] = ((c0 & 0x1F) << 6) | (c1 & 0x3F);
+          tptr[1] = ((c2 & 0x1F) << 6) | (c3 & 0x3F);
+          tptr += 2;
+          sptr += 4;
+          slen -= 4;
           continue;
         } else {
           goto utf8_2_bytes;
@@ -676,50 +419,34 @@ tonyfettes_encoding_v2_unsafe_decode_utf8_to_char_array(
     }
     c2 = sptr[2];
     if (c0 <= 0xEF) {
-      if (slen >= 6) {
-        unsigned char c3 = sptr[3];
-        unsigned char c4 = sptr[4];
-        unsigned char c5 = sptr[5];
-        if (c3 >= 0xE0 && c3 <= 0xEF) {
-          t->data[t->size] =
-            ((c0 & 0x0F) << 12) | ((c1 & 0x3F) << 6) | (c2 & 0x3F);
-          t->data[t->size + 1] =
-            ((c3 & 0x0F) << 12) | ((c4 & 0x3F) << 6) | (c5 & 0x3F);
-          t->size += 2;
-          sptr += 6;
-          slen -= 6;
-          continue;
-        } else {
-          goto utf8_3_bytes;
-        }
-      } else {
-        goto utf8_3_bytes;
-      }
+      goto utf8_3_bytes;
     }
     c3 = sptr[3];
-    t->data[t->size] = ((c0 & 0x07) << 18) | ((c1 & 0x3F) << 12) |
-                       ((c2 & 0x3F) << 6) | (c3 & 0x3F);
-    t->size++;
-    sptr += 4;
-    slen -= 4;
-    continue;
+    goto utf8_4_bytes;
   utf8_1_byte:
-    t->data[t->size] = c0;
-    t->size++;
+    tptr[0] = c0;
+    tptr++;
     sptr += 1;
     slen -= 1;
     continue;
   utf8_2_bytes:
-    t->data[t->size] = ((c0 & 0x1F) << 6) | (c1 & 0x3F);
-    t->size++;
+    tptr[0] = ((c0 & 0x1F) << 6) | (c1 & 0x3F);
+    tptr++;
     sptr += 2;
     slen -= 2;
     continue;
   utf8_3_bytes:
-    t->data[t->size] = ((c0 & 0x0F) << 12) | ((c1 & 0x3F) << 6) | (c2 & 0x3F);
-    t->size++;
+    tptr[0] = ((c0 & 0x0F) << 12) | ((c1 & 0x3F) << 6) | (c2 & 0x3F);
+    tptr++;
     sptr += 3;
     slen -= 3;
+    continue;
+  utf8_4_bytes:
+    tptr[0] = ((c0 & 0x07) << 18) | ((c1 & 0x3F) << 12) | ((c2 & 0x3F) << 6) |
+              (c3 & 0x3F);
+    tptr++;
+    sptr += 4;
+    slen -= 4;
     continue;
   }
 }

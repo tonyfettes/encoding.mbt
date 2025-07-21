@@ -22,9 +22,9 @@ test "decode" {
 ///|
 test "validate" {
   for c0 = b'\x00'; c0 < '\xFF'; c0 = c0 + 1 {
-    for c1 = b'\xED'; c1 < '\xFF'; c1 = c1 + 1 {
-      for c2 = b'\xA0'; c2 < '\xFF'; c2 = c2 + 1 {
-        for c3 = b'\x80'; c3 < '\xFF'; c3 = c3 + 1 {
+    for c1 = b'\x00'; c1 < '\xFF'; c1 = c1 + 1 {
+      for c2 = b'\x00'; c2 < '\xFF'; c2 = c2 + 1 {
+        for c3 = b'\x00'; c3 < '\xFF'; c3 = c3 + 1 {
           let bytes : Bytes = [c0, c1, c2, c3]
           if validate_utf8_naive(bytes) != validate_utf8_c(bytes) {
             println("validate_utf8_naive and validate_utf8_c disagree on: \{bytes}")

@@ -271,7 +271,9 @@ pub fn decode_utf8_to_char_array_regex(
 ///|
 #borrow(bytes, chars)
 extern "c" fn tonyfettes_encoding_v2_decode_utf8_to_char_array(
-  bytes : @bytes.View,
+  bytes : Bytes,
+  bytes_offset : Int,
+  bytes_length : Int,
   chars : Array[Char]
 ) -> Int = "tonyfettes_encoding_v2_decode_utf8_to_char_array"
 
@@ -281,7 +283,12 @@ pub fn decode_utf8_to_char_array_c(
   chars : Array[Char]
 ) -> Unit raise DecodingError {
   // chars.reserve_capacity(chars.length() + bytes.length())
-  let result = tonyfettes_encoding_v2_decode_utf8_to_char_array(bytes, chars)
+  let result = tonyfettes_encoding_v2_decode_utf8_to_char_array(
+    bytes.data(),
+    bytes.start_offset(),
+    bytes.length(),
+    chars,
+  )
   if result >= 0 {
     raise DecodingError::Malformed(bytes[result:])
   }
@@ -373,12 +380,26 @@ pub fn unsafe_decode_utf8_to_char_array_naive(
 
 ///|
 #borrow(bytes)
-pub extern "c" fn validate_utf8_c(bytes : @bytes.View) -> Bool = "tonyfettes_encoding_v2_validate_utf8_to_char_array"
+extern "c" fn tonyfettes_encoding_v2_validate_utf8(
+  bytes : Bytes,
+  offset : Int,
+  length : Int
+) -> Bool = "tonyfettes_encoding_v2_validate_utf8"
+
+pub fn validate_utf8_c(bytes : @bytes.View) -> Bool {
+  tonyfettes_encoding_v2_validate_utf8(
+    bytes.data(),
+    bytes.start_offset(),
+    bytes.length(),
+  )
+}
 
 ///|
 #borrow(bytes, chars)
 pub extern "c" fn tonyfettes_encoding_v2_unsafe_decode_utf8_to_char_array(
-  bytes : @bytes.View,
+  bytes : Bytes,
+  bytes_offset : Int,
+  bytes_length : Int,
   chars : Array[Char]
 ) = "tonyfettes_encoding_v2_unsafe_decode_utf8_to_char_array"
 
@@ -387,6 +408,10 @@ pub fn unsafe_decode_utf8_to_char_array_c(
   bytes : @bytes.View,
   chars : Array[Char]
 ) -> Unit {
-  chars.reserve_capacity(chars.length() + bytes.length())
-  tonyfettes_encoding_v2_unsafe_decode_utf8_to_char_array(bytes, chars)
+  tonyfettes_encoding_v2_unsafe_decode_utf8_to_char_array(
+    bytes.data(),
+    bytes.start_offset(),
+    bytes.length(),
+    chars,
+  )
 }
