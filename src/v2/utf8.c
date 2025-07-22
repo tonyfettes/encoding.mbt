@@ -62,28 +62,32 @@ struct moonbit_bytes_view {
 
 MOONBIT_FFI_EXPORT int
 tonyfettes_encoding_v2_decode_utf8_to_char_array(
-  moonbit_bytes_t s,
+  const uint8_t *restrict s,
   int32_t soff,
   int32_t slen,
   struct moonbit_int32_array *restrict t
 ) {
-  unsigned char *sptr = s + soff;
   moonbit_int32_array_reserve(t, slen);
+  const uint8_t *restrict sptr = s + soff;
   int32_t *restrict tptr = t->data + t->size;
   while (true) {
-    unsigned char c0;
-    unsigned char c1;
-    unsigned char c2;
-    unsigned char c3;
+    uint8_t c0;
+    uint8_t c1;
+    uint8_t c2;
+    uint8_t c3;
     if (slen == 0) {
       t->size += tptr - t->data;
       return -1;
     }
     c0 = sptr[0];
     if (c0 <= 0x7F) {
+      union {
+        uint64_t b;
+        uint8_t c[8];
+      } data;
       if (slen >= 8) {
-        uint64_t data = *(const uint64_t *)sptr;
-        if ((data & 0x8080808080808080ULL) == 0) {
+        data.b = *(const uint64_t *)sptr;
+        if ((data.b & 0x8080808080808080ULL) == 0) {
           goto utf8_1x8;
         } else {
           goto utf8_1_byte;
@@ -92,14 +96,14 @@ tonyfettes_encoding_v2_decode_utf8_to_char_array(
         goto utf8_1_byte;
       }
     utf8_1x8:
-      tptr[0] = sptr[0];
-      tptr[1] = sptr[1];
-      tptr[2] = sptr[2];
-      tptr[3] = sptr[3];
-      tptr[4] = sptr[4];
-      tptr[5] = sptr[5];
-      tptr[6] = sptr[6];
-      tptr[7] = sptr[7];
+      tptr[0] = data.c[0];
+      tptr[1] = data.c[1];
+      tptr[2] = data.c[2];
+      tptr[3] = data.c[3];
+      tptr[4] = data.c[4];
+      tptr[5] = data.c[5];
+      tptr[6] = data.c[6];
+      tptr[7] = data.c[7];
       tptr += 8;
       sptr += 8;
       slen -= 8;
