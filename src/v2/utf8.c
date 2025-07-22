@@ -1,7 +1,7 @@
 #include "moonbit.h"
-#include <immintrin.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 struct moonbit_int32_array {
   int32_t size;
