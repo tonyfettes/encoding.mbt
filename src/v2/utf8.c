@@ -52,6 +52,10 @@ moonbit_int32_array_reserve(
   struct moonbit_object *header = Moonbit_object_header(array->data);
   header = realloc(header, sizeof(struct moonbit_object) + (capacity << 2));
   array->data = (int32_t *)(header + 1);
+  header->meta = Moonbit_make_array_header(
+    Moonbit_object_kind(array->data),
+    Moonbit_array_elem_size_shift(array->data), capacity
+  );
 }
 
 struct moonbit_bytes_view {
