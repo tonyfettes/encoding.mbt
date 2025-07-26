@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 struct moonbit_int32_array {
   int32_t size;
@@ -457,4 +458,117 @@ tonyfettes_encoding_v2_unsafe_decode_utf8_to_char_array(
     slen -= 4;
     continue;
   }
+}
+
+typedef struct moonbit_buffer {
+  int32_t len;
+  moonbit_bytes_t restrict buf;
+  moonbit_bytes_t restrict init_buf;
+} moonbit_buffer_t;
+
+typedef struct moonbit_int32_array_view {
+  int32_t off;
+  int32_t len;
+  int32_t *restrict buf;
+} moonbit_int32_array_view_t;
+
+static void __attribute__((noinline))
+moonbit_buffer_reserve(moonbit_buffer_t *restrict buffer, int32_t by) {
+  int32_t required = buffer->len + by;
+  int32_t capacity = Moonbit_array_length(buffer->buf);
+  if (required <= capacity) {
+    return;
+  }
+  do {
+    capacity *= 2;
+  } while (capacity < required);
+  moonbit_bytes_t new_buf = (moonbit_bytes_t
+  )moonbit_malloc_array(moonbit_BLOCK_KIND_VAL_ARRAY, 0, capacity);
+  memcpy(new_buf, buffer->buf, buffer->len);
+  moonbit_decref(buffer->buf);
+  buffer->buf = new_buf;
+}
+
+#define SIMD_SIZE 64
+
+static inline bool
+tonyfettes_encoding_v2_encode_char_array_to_utf8__is_ascii(
+  const int32_t *restrict sptr
+) {
+  int32_t mask = 0;
+  for (int32_t i = 0; i < SIMD_SIZE; i++) {
+    mask |= sptr[i];
+  }
+  return mask < 0x80;
+}
+
+static inline unsigned char *restrict
+tonyfettes_encoding_v2_encode_char_array_to_utf8__ascii(
+  const int32_t *restrict sptr,
+  unsigned char *restrict tptr
+) {
+  for (int32_t i = 0; i < SIMD_SIZE; i++) {
+    *tptr++ = (unsigned char)sptr[i];
+  }
+  return tptr;
+}
+
+#include <stdio.h>
+
+MOONBIT_FFI_EXPORT
+int32_t
+tonyfettes_encoding_v2_encode_char_array_to_utf8(
+  const moonbit_int32_array_view_t s,
+  moonbit_buffer_t *restrict t
+) {
+  int32_t soff = s.off;
+  int32_t slen = s.len;
+  moonbit_buffer_reserve(t, slen * 4);
+  const int32_t *restrict sptr = s.buf + soff;
+  int32_t tlen = t->len;
+  unsigned char *restrict tptr = t->buf + tlen;
+  for (size_t i = 0; i < slen;) {
+    int32_t c = sptr[i];
+    if (i + SIMD_SIZE < slen && (i + soff) % 8 == 0 &&
+        tonyfettes_encoding_v2_encode_char_array_to_utf8__is_ascii(sptr + i)) {
+      tptr =
+        tonyfettes_encoding_v2_encode_char_array_to_utf8__ascii(sptr + i, tptr);
+      i += SIMD_SIZE;
+    } else if (c < 0x80) {
+      tptr[0] = c;
+      tptr += 1;
+      i += 1;
+    } else if (c < 0x800) {
+      tptr[0] = (c >> 6) | 0xC0;
+      tptr[1] = (c & 0x3F) | 0x80;
+      tptr += 2;
+      i += 1;
+    } else if (c < 0x10000) {
+      tptr[0] = (c >> 12) | 0xE0;
+      tptr[1] = ((c >> 6) & 0x3F) | 0x80;
+      tptr[2] = (c & 0x3F) | 0x80;
+      tptr += 3;
+      i += 1;
+    } else if (c < 0x110000) {
+      tptr[0] = (c >> 18) | 0xF0;
+      tptr[1] = ((c >> 12) & 0x3F) | 0x80;
+      tptr[2] = ((c >> 6) & 0x3F) | 0x80;
+      tptr[3] = (c & 0x3F) | 0x80;
+      tptr += 4;
+      i += 1;
+    } else {
+      return -1;
+    }
+  }
+  t->len = tlen + (tptr - t->buf);
+  return 0;
+}
+
+static inline void
+moonbit_buffer_write_byte(
+  moonbit_buffer_t *restrict buffer,
+  unsigned char byte
+) {
+  moonbit_buffer_reserve(buffer, 1);
+  buffer->buf[buffer->len++] = byte;
 }

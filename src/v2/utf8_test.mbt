@@ -19,6 +19,26 @@ test "decode" {
     assert_eq(values_naive, values_c)
   }
 }
+
+///|
+test "encode" {
+  for
+    path in [
+      "src/v2/utf8-test.txt", "unicode_lipsum/wikipedia_mars/chinese.utf8.txt", "unicode_lipsum/wikipedia_mars/english.utf8.txt",
+      "unicode_lipsum/wikipedia_mars/arabic.utf8.txt",
+    ] {
+    let bytes = @fs.read_file_to_bytes(path)
+    let unicode = []
+    decode_utf8_to_char_array_naive(bytes, unicode)
+    let buffer_naive = @buffer.new()
+    encode_char_array_to_utf8(unicode, buffer_naive)
+    assert_eq(bytes, buffer_naive.to_bytes())
+    let buffer_c = @buffer.new()
+    encode_char_array_to_utf8_c(unicode, buffer_c)
+    assert_eq(bytes, buffer_c.to_bytes())
+  }
+}
+
 ///|
 test "validate" {
   for c0 = b'\x00'; c0 < '\xFF'; c0 = c0 + 1 {
@@ -27,7 +47,9 @@ test "validate" {
         for c3 = b'\x00'; c3 < '\xFF'; c3 = c3 + 1 {
           let bytes : Bytes = [c0, c1, c2, c3]
           if validate_utf8_naive(bytes) != validate_utf8_c(bytes) {
-            println("validate_utf8_naive and validate_utf8_c disagree on: \{bytes}")
+            println(
+              "validate_utf8_naive and validate_utf8_c disagree on: \{bytes}",
+            )
           }
           assert_eq(validate_utf8_naive(bytes), validate_utf8_c(bytes))
         }
@@ -169,5 +191,30 @@ test "validate/arabic" (b : @bench.T) {
   b.bench(name="c/unsafe_decode", () => unsafe_decode_utf8_to_char_array_c(
     bytes,
     [],
+  ))
+}
+
+///|
+test "encoding/english" (b : @bench.T) {
+  let bytes = @fs.read_file_to_bytes(
+    "unicode_lipsum/wikipedia_mars/english.utf8.txt",
+  )
+  b.bench(name="naive/decode", () => decode_utf8_to_char_array_naive(bytes, []) catch {
+    _ => ()
+  })
+  b.bench(name="c/decode", () => decode_utf8_to_char_array_c(bytes, []) catch {
+    _ => ()
+  })
+  let unicode = []
+  decode_utf8_to_char_array_naive(bytes, unicode)
+  b.bench(name="naive/encode", () => encode_char_array_to_utf8(
+    unicode,
+    @buffer.new(),
+  ) catch {
+    _ => ()
+  })
+  b.bench(name="c/encode", () => encode_char_array_to_utf8_c(
+    unicode,
+    @buffer.new(),
   ))
 }

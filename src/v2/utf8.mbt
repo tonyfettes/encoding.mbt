@@ -6,7 +6,7 @@ suberror DecodingError {
 ///|
 pub fn decode_utf8_to_char_array_naive(
   bytes : @bytes.View,
-  chars : Array[Char]
+  chars : Array[Char],
 ) -> Unit raise DecodingError {
   chars.reserve_capacity(chars.length() + bytes.length())
   loop bytes {
@@ -72,7 +72,7 @@ pub fn decode_utf8_to_char_array_naive(
 ///|
 pub fn decode_utf8_to_char_array_vector(
   bytes : @bytes.View,
-  chars : Array[Char]
+  chars : Array[Char],
 ) -> Unit raise DecodingError {
   chars.reserve_capacity(chars.length() + bytes.length())
   loop bytes {
@@ -253,7 +253,7 @@ pub fn decode_utf8_to_char_array_vector(
 ///|
 pub fn decode_utf8_to_char_array_regex(
   bytes : @bytes.View,
-  chars : Array[Char]
+  chars : Array[Char],
 ) -> Unit raise DecodingError {
   chars.reserve_capacity(chars.length() + bytes.length())
   for curr = bytes {
@@ -274,13 +274,13 @@ extern "c" fn tonyfettes_encoding_v2_decode_utf8_to_char_array(
   bytes : Bytes,
   bytes_offset : Int,
   bytes_length : Int,
-  chars : Array[Char]
+  chars : Array[Char],
 ) -> Int = "tonyfettes_encoding_v2_decode_utf8_to_char_array"
 
 ///|
 pub fn decode_utf8_to_char_array_c(
   bytes : @bytes.View,
-  chars : Array[Char]
+  chars : Array[Char],
 ) -> Unit raise DecodingError {
   // chars.reserve_capacity(chars.length() + bytes.length())
   let result = tonyfettes_encoding_v2_decode_utf8_to_char_array(
@@ -314,7 +314,7 @@ pub fn validate_utf8_naive(bytes : @bytes.View) -> Bool {
 ///|
 pub fn unsafe_decode_utf8_to_char_array_naive(
   bytes : @bytes.View,
-  chars : Array[Char]
+  chars : Array[Char],
 ) -> Unit raise DecodingError {
   chars.reserve_capacity(chars.length() + bytes.length())
   loop bytes {
@@ -383,9 +383,10 @@ pub fn unsafe_decode_utf8_to_char_array_naive(
 extern "c" fn tonyfettes_encoding_v2_validate_utf8(
   bytes : Bytes,
   offset : Int,
-  length : Int
+  length : Int,
 ) -> Bool = "tonyfettes_encoding_v2_validate_utf8"
 
+///|
 pub fn validate_utf8_c(bytes : @bytes.View) -> Bool {
   tonyfettes_encoding_v2_validate_utf8(
     bytes.data(),
@@ -400,13 +401,13 @@ pub extern "c" fn tonyfettes_encoding_v2_unsafe_decode_utf8_to_char_array(
   bytes : Bytes,
   bytes_offset : Int,
   bytes_length : Int,
-  chars : Array[Char]
+  chars : Array[Char],
 ) = "tonyfettes_encoding_v2_unsafe_decode_utf8_to_char_array"
 
 ///|
 pub fn unsafe_decode_utf8_to_char_array_c(
   bytes : @bytes.View,
-  chars : Array[Char]
+  chars : Array[Char],
 ) -> Unit {
   tonyfettes_encoding_v2_unsafe_decode_utf8_to_char_array(
     bytes.data(),
@@ -415,3 +416,59 @@ pub fn unsafe_decode_utf8_to_char_array_c(
     chars,
   )
 }
+
+///|
+suberror EncodingError {
+  InvalidCharacter(Int)
+} derive(Show)
+
+///|
+pub fn encode_char_array_to_utf8(
+  chars : @array.View[Char],
+  bytes : @buffer.T,
+) -> Unit raise EncodingError {
+  loop chars {
+    [] => ()
+    [char, .. chars] => {
+      let char = char.to_int()
+      match char {
+        0..<0x80 => {
+          bytes.write_byte(char.to_byte())
+          continue ascii~: loop chars {
+              [] => return
+              ['\u{0}'..<'\u{80}', .. chars] => {
+                bytes.write_byte(char.to_byte())
+                continue ascii~ chars
+              }
+              [_, ..] as chars => break chars
+            }
+        }
+        0x80..<0x800 => {
+          bytes.write_byte((0xC0 | (char >> 6)).to_byte())
+          bytes.write_byte((0x80 | (char & 0x3F)).to_byte())
+        }
+        0x800..<0x10000 => {
+          bytes.write_byte((0xE0 | (char >> 12)).to_byte())
+          bytes.write_byte((0x80 | ((char >> 6) & 0x3F)).to_byte())
+          bytes.write_byte((0x80 | (char & 0x3F)).to_byte())
+        }
+        0x10000..=0x10FFFF =>
+          bytes.write_bytes([
+            (0xF0 | (char >> 18)).to_byte(),
+            (0x80 | ((char >> 12) & 0x3F)).to_byte(),
+            (0x80 | ((char >> 6) & 0x3F)).to_byte(),
+            (0x80 | (char & 0x3F)).to_byte(),
+          ])
+        _ => raise EncodingError::InvalidCharacter(char)
+      }
+      continue chars
+    }
+  }
+}
+
+///|
+#borrow(chars, bytes)
+pub extern "c" fn encode_char_array_to_utf8_c(
+  chars : @array.View[Char],
+  bytes : @buffer.T,
+) = "tonyfettes_encoding_v2_encode_char_array_to_utf8"
