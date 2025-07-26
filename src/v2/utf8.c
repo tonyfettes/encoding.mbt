@@ -65,6 +65,29 @@ struct moonbit_bytes_view {
   moonbit_bytes_t bytes;
 };
 
+enum { DECODE_SIMD_SIZE = 64 };
+
+static inline bool
+tonyfettes_encoding_v2_decode_utf8_to_char_array__is_ascii(
+  const uint8_t *restrict sptr
+) {
+  unsigned char mask = 0;
+  for (int i = 0; i < DECODE_SIMD_SIZE; i++) {
+    mask |= sptr[i];
+  }
+  return mask < 0x80;
+}
+
+static inline void
+tonyfettes_encoding_v2_decode_utf8_to_char_array__ascii(
+  const uint8_t *restrict sptr,
+  int32_t *restrict tptr
+) {
+  for (int i = 0; i < DECODE_SIMD_SIZE; i++) {
+    tptr[i] = sptr[i];
+  }
+}
+
 MOONBIT_FFI_EXPORT int
 tonyfettes_encoding_v2_decode_utf8_to_char_array(
   const uint8_t *restrict s,
@@ -75,7 +98,7 @@ tonyfettes_encoding_v2_decode_utf8_to_char_array(
   moonbit_int32_array_reserve(t, slen);
   const uint8_t *restrict sptr = s + soff;
   int32_t *restrict tptr = t->data + t->size;
-  while (true) {
+  while (1) {
     uint8_t c0;
     uint8_t c1;
     uint8_t c2;
@@ -84,40 +107,20 @@ tonyfettes_encoding_v2_decode_utf8_to_char_array(
       t->size += tptr - t->data;
       return -1;
     }
+    if (slen >= DECODE_SIMD_SIZE && (uintptr_t)sptr % 8 == 0) {
+      if (tonyfettes_encoding_v2_decode_utf8_to_char_array__is_ascii(sptr)) {
+        tonyfettes_encoding_v2_decode_utf8_to_char_array__ascii(sptr, tptr);
+        tptr += DECODE_SIMD_SIZE;
+        sptr += DECODE_SIMD_SIZE;
+        slen -= DECODE_SIMD_SIZE;
+        continue;
+      }
+    }
     c0 = sptr[0];
     if (c0 <= 0x7F) {
-      union {
-        uint64_t b;
-        uint8_t c[8];
-      } data;
-      if (slen >= 8) {
-        data.b = *(const uint64_t *)sptr;
-        if ((data.b & 0x8080808080808080ULL) == 0) {
-          goto utf8_1x8;
-        } else {
-          goto utf8_1_byte;
-        }
-      } else {
-        goto utf8_1_byte;
-      }
-    utf8_1x8:
-      tptr[0] = data.c[0];
-      tptr[1] = data.c[1];
-      tptr[2] = data.c[2];
-      tptr[3] = data.c[3];
-      tptr[4] = data.c[4];
-      tptr[5] = data.c[5];
-      tptr[6] = data.c[6];
-      tptr[7] = data.c[7];
-      tptr += 8;
-      sptr += 8;
-      slen -= 8;
-      continue;
+      goto utf8_1_byte;
     }
-    if (c0 <= 0xC1) {
-      goto malformed;
-    }
-    if (slen < 2) {
+    if (c0 <= 0xC1 || slen < 2) {
       goto malformed;
     }
     c1 = sptr[1];
@@ -489,25 +492,25 @@ moonbit_buffer_reserve(moonbit_buffer_t *restrict buffer, int32_t by) {
   buffer->buf = new_buf;
 }
 
-#define SIMD_SIZE 64
+enum { ENCODE_SIMD_SIZE = 16 };
 
 static inline bool
 tonyfettes_encoding_v2_encode_char_array_to_utf8__is_ascii(
   const int32_t *restrict sptr
 ) {
   int32_t mask = 0;
-  for (int32_t i = 0; i < SIMD_SIZE; i++) {
+  for (int32_t i = 0; i < ENCODE_SIMD_SIZE; i++) {
     mask |= sptr[i];
   }
   return mask < 0x80;
 }
 
-static inline unsigned char *restrict
+static inline unsigned char *
 tonyfettes_encoding_v2_encode_char_array_to_utf8__ascii(
   const int32_t *restrict sptr,
   unsigned char *restrict tptr
 ) {
-  for (int32_t i = 0; i < SIMD_SIZE; i++) {
+  for (int32_t i = 0; i < ENCODE_SIMD_SIZE; i++) {
     *tptr++ = (unsigned char)sptr[i];
   }
   return tptr;
@@ -528,37 +531,55 @@ tonyfettes_encoding_v2_encode_char_array_to_utf8(
   int32_t tlen = t->len;
   unsigned char *restrict tptr = t->buf + tlen;
   for (size_t i = 0; i < slen;) {
+    if (i + ENCODE_SIMD_SIZE < slen && i % 8 == 0) {
+      if (tonyfettes_encoding_v2_encode_char_array_to_utf8__is_ascii(
+            sptr + i
+          )) {
+        tptr = tonyfettes_encoding_v2_encode_char_array_to_utf8__ascii(
+          sptr + i, tptr
+        );
+        i += ENCODE_SIMD_SIZE;
+        continue;
+      }
+    }
     int32_t c = sptr[i];
-    if (i + SIMD_SIZE < slen && (i + soff) % 8 == 0 &&
-        tonyfettes_encoding_v2_encode_char_array_to_utf8__is_ascii(sptr + i)) {
-      tptr =
-        tonyfettes_encoding_v2_encode_char_array_to_utf8__ascii(sptr + i, tptr);
-      i += SIMD_SIZE;
-    } else if (c < 0x80) {
-      tptr[0] = c;
-      tptr += 1;
-      i += 1;
+    if (c < 0x80) {
+      goto utf8_1_byte;
     } else if (c < 0x800) {
-      tptr[0] = (c >> 6) | 0xC0;
-      tptr[1] = (c & 0x3F) | 0x80;
-      tptr += 2;
-      i += 1;
+      goto utf8_2_bytes;
     } else if (c < 0x10000) {
-      tptr[0] = (c >> 12) | 0xE0;
-      tptr[1] = ((c >> 6) & 0x3F) | 0x80;
-      tptr[2] = (c & 0x3F) | 0x80;
-      tptr += 3;
-      i += 1;
+      goto utf8_3_bytes;
     } else if (c < 0x110000) {
-      tptr[0] = (c >> 18) | 0xF0;
-      tptr[1] = ((c >> 12) & 0x3F) | 0x80;
-      tptr[2] = ((c >> 6) & 0x3F) | 0x80;
-      tptr[3] = (c & 0x3F) | 0x80;
-      tptr += 4;
-      i += 1;
+      goto utf8_4_bytes;
     } else {
       return -1;
     }
+  utf8_1_byte:
+    tptr[0] = c;
+    tptr += 1;
+    i += 1;
+    continue;
+  utf8_2_bytes:
+    tptr[0] = (c >> 6) | 0xC0;
+    tptr[1] = (c & 0x3F) | 0x80;
+    tptr += 2;
+    i += 1;
+    continue;
+  utf8_3_bytes:
+    tptr[0] = (c >> 12) | 0xE0;
+    tptr[1] = ((c >> 6) & 0x3F) | 0x80;
+    tptr[2] = (c & 0x3F) | 0x80;
+    tptr += 3;
+    i += 1;
+    continue;
+  utf8_4_bytes:
+    tptr[0] = (c >> 18) | 0xF0;
+    tptr[1] = ((c >> 12) & 0x3F) | 0x80;
+    tptr[2] = ((c >> 6) & 0x3F) | 0x80;
+    tptr[3] = (c & 0x3F) | 0x80;
+    tptr += 4;
+    i += 1;
+    continue;
   }
   t->len = tlen + (tptr - t->buf);
   return 0;

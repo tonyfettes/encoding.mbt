@@ -427,41 +427,27 @@ pub fn encode_char_array_to_utf8(
   chars : @array.View[Char],
   bytes : @buffer.T,
 ) -> Unit raise EncodingError {
-  loop chars {
-    [] => ()
-    [char, .. chars] => {
-      let char = char.to_int()
-      match char {
-        0..<0x80 => {
-          bytes.write_byte(char.to_byte())
-          continue ascii~: loop chars {
-              [] => return
-              ['\u{0}'..<'\u{80}', .. chars] => {
-                bytes.write_byte(char.to_byte())
-                continue ascii~ chars
-              }
-              [_, ..] as chars => break chars
-            }
-        }
-        0x80..<0x800 => {
-          bytes.write_byte((0xC0 | (char >> 6)).to_byte())
-          bytes.write_byte((0x80 | (char & 0x3F)).to_byte())
-        }
-        0x800..<0x10000 => {
-          bytes.write_byte((0xE0 | (char >> 12)).to_byte())
-          bytes.write_byte((0x80 | ((char >> 6) & 0x3F)).to_byte())
-          bytes.write_byte((0x80 | (char & 0x3F)).to_byte())
-        }
-        0x10000..=0x10FFFF =>
-          bytes.write_bytes([
-            (0xF0 | (char >> 18)).to_byte(),
-            (0x80 | ((char >> 12) & 0x3F)).to_byte(),
-            (0x80 | ((char >> 6) & 0x3F)).to_byte(),
-            (0x80 | (char & 0x3F)).to_byte(),
-          ])
-        _ => raise EncodingError::InvalidCharacter(char)
+  for char in chars {
+    let char = char.to_int()
+    match char {
+      0..<0x80 => bytes.write_byte(char.to_byte())
+      0x80..<0x800 => {
+        bytes.write_byte((0xC0 | (char >> 6)).to_byte())
+        bytes.write_byte((0x80 | (char & 0x3F)).to_byte())
       }
-      continue chars
+      0x800..<0x10000 => {
+        bytes.write_byte((0xE0 | (char >> 12)).to_byte())
+        bytes.write_byte((0x80 | ((char >> 6) & 0x3F)).to_byte())
+        bytes.write_byte((0x80 | (char & 0x3F)).to_byte())
+      }
+      0x10000..=0x10FFFF =>
+        bytes.write_bytes([
+          (0xF0 | (char >> 18)).to_byte(),
+          (0x80 | ((char >> 12) & 0x3F)).to_byte(),
+          (0x80 | ((char >> 6) & 0x3F)).to_byte(),
+          (0x80 | (char & 0x3F)).to_byte(),
+        ])
+      _ => raise EncodingError::InvalidCharacter(char)
     }
   }
 }
