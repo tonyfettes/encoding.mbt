@@ -57,7 +57,7 @@ pub fn[Encode : Encode] encode(string : Encode, encoding~ : Encoding) -> Bytes {
 pub fn[Encode : Encode] encode_to(
   src : Encode,
   buffer : @buffer.T,
-  encoding~ : Encoding
+  encoding~ : Encoding,
 ) -> Unit {
   Encode::encode_to(src, buffer, encoding~)
 }
@@ -87,7 +87,7 @@ pub impl Encode for Char with size_hint(value : Char, encoding~ : Encoding) -> I
 pub impl Encode for Char with encode_to(
   value : Char,
   buffer : @buffer.T,
-  encoding~ : Encoding
+  encoding~ : Encoding,
 ) -> Unit {
   match encoding {
     UTF8 => write_utf8_char(buffer, value)
@@ -106,7 +106,7 @@ pub impl Encode for String with size_hint(value : String, encoding~ : Encoding) 
 pub impl Encode for String with encode_to(
   value : String,
   buffer : @buffer.T,
-  encoding~ : Encoding
+  encoding~ : Encoding,
 ) -> Unit {
   match encoding {
     UTF8 =>
@@ -127,7 +127,7 @@ pub impl Encode for String with encode_to(
 ///|
 pub impl Encode for @string.View with size_hint(
   value : @string.View,
-  encoding~ : Encoding
+  encoding~ : Encoding,
 ) -> Int {
   ignore(encoding)
   value.length() * 4
@@ -137,7 +137,7 @@ pub impl Encode for @string.View with size_hint(
 pub impl Encode for @string.View with encode_to(
   value : @string.View,
   buffer : @buffer.T,
-  encoding~ : Encoding
+  encoding~ : Encoding,
 ) -> Unit {
   match encoding {
     UTF8 =>

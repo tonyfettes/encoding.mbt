@@ -19,6 +19,11 @@ pub suberror DecodingError {
 } derive(Show)
 
 ///|
+pub suberror EncodingError {
+  InvalidCharacter(Int)
+} derive(Show)
+
+///|
 pub impl ToJson for DecodingError with to_json(self : DecodingError) -> Json {
   match self {
     Malformed(bytes) => { "malformed": bytes.to_array().to_json() }
@@ -91,7 +96,7 @@ fn malformed_pair(
   hi : Int,
   bytes : FixedArray[Byte],
   offset : Int,
-  length : Int
+  length : Int,
 ) -> Decode {
   let bs1 = FixedArray::make(length, Byte::default())
   bytes.blit_to(bs1, len=length, src_offset=offset)

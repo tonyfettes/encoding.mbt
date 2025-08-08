@@ -1,1 +1,8 @@
-{}
+{
+  "native-stub": [
+    "utf8.c"
+  ],
+  "test-import": [
+    "moonbitlang/x/fs"
+  ]
+}
