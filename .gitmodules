@@ -1,0 +1,3 @@
+[submodule "unicode_lipsum"]
+	path = unicode_lipsum
+	url = https://github.com/lemire/unicode_lipsum
