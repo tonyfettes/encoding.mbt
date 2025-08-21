@@ -1,0 +1,10 @@
+{
+  "native-stub": [
+    "utf8.c"
+  ],
+  "import": [
+    "moonbitlang/x/fs",
+    "tonyfettes/uv"
+  ],
+  "is-main": true
+}
