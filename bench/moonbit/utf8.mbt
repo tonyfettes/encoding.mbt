@@ -92,24 +92,6 @@ pub fn decode_utf8_to_char_array_naive(
 }
 
 ///|
-pub fn decode_utf8_to_char_array_regex(
-  bytes : @bytes.View,
-  chars : Array[Char],
-) -> Unit raise DecodingError {
-  chars.reserve_capacity(chars.length() + bytes.length())
-  for curr = bytes {
-    match curr using regex {
-      [] => return
-      ["(?utf8:.)" as c, .. rest] => {
-        chars.push(c)
-        continue rest
-      }
-      bytes => raise DecodingError::Malformed(bytes)
-    }
-  }
-}
-
-///|
 #borrow(bytes, chars)
 extern "c" fn tonyfettes_encoding_v2_decode_utf8_to_char_array(
   bytes : Bytes,

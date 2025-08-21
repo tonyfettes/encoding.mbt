@@ -11,11 +11,11 @@ fn main {
     let c_length = decode_utf8_to_char_array_c(bytes, c_unicode)
     assert_eq(naive_length, c_length)
     assert_eq(naive_unicode, c_unicode)
-    for i in 0..<5 {
+    for _ in 0..<5 {
       ignore(decode_utf8_to_char_array_naive(bytes, naive_unicode))
     }
     let start = @uv.hrtime()
-    for i in 0..<1000 {
+    for _ in 0..<1000 {
       ignore(decode_utf8_to_char_array_naive(bytes, naive_unicode))
     }
     let end = @uv.hrtime()
