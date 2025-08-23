@@ -3,8 +3,7 @@
     "utf8.c"
   ],
   "import": [
-    "moonbitlang/x/fs",
-    "tonyfettes/uv"
+    "moonbitlang/x/fs"
   ],
   "is-main": true
 }

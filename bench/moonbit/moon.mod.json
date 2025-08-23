@@ -2,8 +2,7 @@
   "name": "tonyfettes/encoding/benchmark",
   "version": "0.1.0",
   "deps": {
-    "moonbitlang/x": "0.4.31",
-    "tonyfettes/uv": "0.12.0"
+    "moonbitlang/x": "0.4.31"
   },
   "readme": "README.md",
   "repository": "",
