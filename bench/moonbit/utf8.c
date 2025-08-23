@@ -155,12 +155,24 @@ tonyfettes_encoding_v2_decode_utf8_to_char_array(
       }
     }
 #else
-    if (slen >= 8 && (uintptr_t)sptr % 8 == 0) {
-      uint64_t batch = *(uint64_t *)sptr;
-      if ((batch & 0x8080808080808080ULL) == 0) {
-        for (int i = 0; i < 8; i++) {
-          tptr[i] = sptr[i];
-        }
+    if (slen >= 8) {
+      c0 = sptr[0];
+      c1 = sptr[1];
+      c2 = sptr[2];
+      c3 = sptr[3];
+      unsigned char c4 = sptr[4];
+      unsigned char c5 = sptr[5];
+      unsigned char c6 = sptr[6];
+      unsigned char c7 = sptr[7];
+      if ((c1 | c2 | c3 | c4 | c5 | c6 | c7) < 0x80) {
+        tptr[0] = c0;
+        tptr[1] = c1;
+        tptr[2] = c2;
+        tptr[3] = c3;
+        tptr[4] = c4;
+        tptr[5] = c5;
+        tptr[6] = c6;
+        tptr[7] = c7;
         tptr += 8;
         sptr += 8;
         slen -= 8;
