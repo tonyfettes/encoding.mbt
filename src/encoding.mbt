@@ -56,7 +56,7 @@ pub fn[Encode : Encode] encode(string : Encode, encoding~ : Encoding) -> Bytes {
 /// ```
 pub fn[Encode : Encode] encode_to(
   src : Encode,
-  buffer : @buffer.T,
+  buffer : @buffer.Buffer,
   encoding~ : Encoding,
 ) -> Unit {
   Encode::encode_to(src, buffer, encoding~)
@@ -66,7 +66,7 @@ pub fn[Encode : Encode] encode_to(
 pub trait Encode {
   size_hint(Self, encoding~ : Encoding) -> Int
   encode(Self, encoding~ : Encoding) -> Bytes = _
-  encode_to(Self, @buffer.T, encoding~ : Encoding) -> Unit
+  encode_to(Self, @buffer.Buffer, encoding~ : Encoding) -> Unit
 }
 
 ///|
@@ -86,7 +86,7 @@ pub impl Encode for Char with size_hint(value : Char, encoding~ : Encoding) -> I
 ///|
 pub impl Encode for Char with encode_to(
   value : Char,
-  buffer : @buffer.T,
+  buffer : @buffer.Buffer,
   encoding~ : Encoding,
 ) -> Unit {
   match encoding {
@@ -105,7 +105,7 @@ pub impl Encode for String with size_hint(value : String, encoding~ : Encoding) 
 ///|
 pub impl Encode for String with encode_to(
   value : String,
-  buffer : @buffer.T,
+  buffer : @buffer.Buffer,
   encoding~ : Encoding,
 ) -> Unit {
   match encoding {
@@ -136,7 +136,7 @@ pub impl Encode for @string.View with size_hint(
 ///|
 pub impl Encode for @string.View with encode_to(
   value : @string.View,
-  buffer : @buffer.T,
+  buffer : @buffer.Buffer,
   encoding~ : Encoding,
 ) -> Unit {
   match encoding {
@@ -157,7 +157,7 @@ pub impl Encode for @string.View with encode_to(
 
 ///|
 /// Write a char into buffer as UTF8.
-fn write_utf8_char(buf : @buffer.T, value : Char) -> Unit {
+fn write_utf8_char(buf : @buffer.Buffer, value : Char) -> Unit {
   let code = value.to_uint()
   match code {
     _..<0x80 => {
@@ -194,7 +194,7 @@ fn write_utf8_char(buf : @buffer.T, value : Char) -> Unit {
 
 ///|
 /// Write a char into buffer as UTF16LE.
-fn write_utf16le_char(buf : @buffer.T, value : Char) -> Unit {
+fn write_utf16le_char(buf : @buffer.Buffer, value : Char) -> Unit {
   let code = value.to_uint()
   if code < 0x10000 {
     let b0 = (code & 0xFF).to_byte()
@@ -220,7 +220,7 @@ fn write_utf16le_char(buf : @buffer.T, value : Char) -> Unit {
 
 ///|
 /// Write a char into buffer as UTF16BE.
-fn write_utf16be_char(buf : @buffer.T, value : Char) -> Unit {
+fn write_utf16be_char(buf : @buffer.Buffer, value : Char) -> Unit {
   let code = value.to_uint()
   if code < 0x10000 {
     let b0 = (code >> 8).to_byte()

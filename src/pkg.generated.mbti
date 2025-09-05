@@ -22,7 +22,7 @@ fn decoder(Encoding) -> Decoder
 
 fn[Encode : Encode] encode(Encode, encoding~ : Encoding) -> Bytes
 
-fn[Encode : Encode] encode_to(Encode, @buffer.T, encoding~ : Encoding) -> Unit
+fn[Encode : Encode] encode_to(Encode, @buffer.Buffer, encoding~ : Encoding) -> Unit
 
 // Errors
 pub suberror DecodingError {
@@ -55,9 +55,8 @@ pub(all) enum Encoding {
 pub trait Encode {
   size_hint(Self, encoding~ : Encoding) -> Int
   encode(Self, encoding~ : Encoding) -> Bytes
-  encode_to(Self, @buffer.T, encoding~ : Encoding) -> Unit
+  encode_to(Self, @buffer.Buffer, encoding~ : Encoding) -> Unit
 }
 impl Encode for Char
 impl Encode for String
-impl Encode for @string.StringView
-
+impl Encode for @string.View
