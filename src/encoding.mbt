@@ -125,8 +125,8 @@ pub impl Encode for String with encode_to(
 }
 
 ///|
-pub impl Encode for @string.View with size_hint(
-  value : @string.View,
+pub impl Encode for StringView with size_hint(
+  value : StringView,
   encoding~ : Encoding,
 ) -> Int {
   ignore(encoding)
@@ -134,8 +134,8 @@ pub impl Encode for @string.View with size_hint(
 }
 
 ///|
-pub impl Encode for @string.View with encode_to(
-  value : @string.View,
+pub impl Encode for StringView with encode_to(
+  value : StringView,
   buffer : @buffer.Buffer,
   encoding~ : Encoding,
 ) -> Unit {

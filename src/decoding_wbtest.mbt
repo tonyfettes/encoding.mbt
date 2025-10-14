@@ -396,7 +396,7 @@ test "decoding UTF16LE encoded data with UTF8" {
   let decoder = decoder(UTF8)
   // NOTE: Expected to be malformed here
   let chars = try? decoder.decode(buf.to_bytes())
-  assert_true(chars.is_err())
+  assert_true(chars is Err(_))
   inspect(
     chars,
     content=(
@@ -523,7 +523,7 @@ test "decoding UTF16BE encoded data with UTF8" {
   let decoder = decoder(UTF8)
   // NOTE: Expected to be malformed here
   let chars = try? decoder.decode(buf.to_bytes())
-  assert_true(chars.is_err())
+  assert_true(chars is Err(_))
   inspect(
     chars,
     content=(
@@ -815,7 +815,7 @@ test "Not all UTF16LE is format-legal UTF16BE and vice versa" {
   // invalid in UTF16BE
   let decoder_utf16be = decoder(UTF16BE)
   let malformedError = try? decoder_utf16be.decode(bytes_le)
-  assert_true(malformedError.is_err())
+  assert_true(malformedError is Err(_))
 
   // vice versa
   let bytes_be = b"\x00\xD8\x00\xD9"
@@ -828,5 +828,5 @@ test "Not all UTF16LE is format-legal UTF16BE and vice versa" {
   // invalid in UTF16LE
   let decoder_utf16le = decoder(UTF16LE)
   let malformedError = try? decoder_utf16le.decode(bytes_be)
-  assert_true(malformedError.is_err())
+  assert_true(malformedError is Err(_))
 }
