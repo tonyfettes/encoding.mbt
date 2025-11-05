@@ -221,7 +221,8 @@ pub fn decode_to(
 ///
 /// `MalformedError`: when the byte sequence is not properly formatted according to the specified encoding.
 /// `TruncatedError`: when the byte sequence ends prematurely, implying that more data is expected for complete decoding.
-pub fn consume(self : Decoder, input : BytesView) -> String raise {
+#as_free_fn
+pub fn Decoder::consume(self : Decoder, input : BytesView) -> String raise {
   self.decode(input, stream=true)
 }
 
@@ -243,7 +244,8 @@ pub fn consume(self : Decoder, input : BytesView) -> String raise {
 ///
 /// `MalformedError`: This error is raised if the remaining byte sequence is not properly formatted according to the specified encoding.
 /// `TruncatedError`: This error is raised if the remaining byte sequence ends prematurely, implying that more data was expected for complete decoding.
-pub fn finish(self : Decoder) -> String raise {
+#as_free_fn
+pub fn Decoder::finish(self : Decoder) -> String raise {
   self.decode(b"", stream=false)
 }
 
@@ -357,7 +359,8 @@ pub fn decode_lossy_to(
 /// # Returns
 ///
 /// A `String` representing the partially decoded content from the input byte sequence, with any invalid sequences replaced by the Unicode Replacement Character (`U+FFFD`), as more bytes are expected.
-pub fn lossy_consume(self : Decoder, input : BytesView) -> String {
+#as_free_fn
+pub fn Decoder::lossy_consume(self : Decoder, input : BytesView) -> String {
   self.decode_lossy(input, stream=true)
 }
 
@@ -374,7 +377,8 @@ pub fn lossy_consume(self : Decoder, input : BytesView) -> String {
 /// # Returns
 ///
 /// A `String` representing the final part of the decoded content, with any invalid sequences replaced by the Unicode Replacement Character (`U+FFFD`), after all byte sequences have been processed.
-pub fn lossy_finish(self : Decoder) -> String {
+#as_free_fn
+pub fn Decoder::lossy_finish(self : Decoder) -> String {
   self.decode_lossy(b"", stream=false)
 }
 
@@ -388,7 +392,7 @@ fn[T : Compare] max(x : T, y : T) -> T {
 }
 
 ///|
-fn i_cont(self : Decoder, input : BytesView) -> Unit {
+fn Decoder::i_cont(self : Decoder, input : BytesView) -> Unit {
   // concat `input` to `i`, drop decoded `i`
   let i_rem = max(self.i_rem(), 0)
   let new_len = i_rem + input.length()
@@ -408,34 +412,34 @@ fn i_cont(self : Decoder, input : BytesView) -> Unit {
 // Implementations
 
 ///|
-fn decode_(self : Decoder) -> Decode {
+fn Decoder::decode_(self : Decoder) -> Decode {
   (self.k)(self)
 }
 
 ///|
-fn ret(self : Decoder, k : Cont, v : Decode) -> Decode {
+fn Decoder::ret(self : Decoder, k : Cont, v : Decode) -> Decode {
   self.k = k
   v
 }
 
 ///|
-fn i_rem(self : Decoder) -> Int {
+fn Decoder::i_rem(self : Decoder) -> Int {
   self.i.length() - self.i_pos
 }
 
 ///|
-fn t_need(self : Decoder, need : Int) -> Unit {
+fn Decoder::t_need(self : Decoder, need : Int) -> Unit {
   self.t_len = 0
   self.t_need = need
 }
 
 ///|
-fn eoi(self : Decoder) -> Unit {
+fn Decoder::eoi(self : Decoder) -> Unit {
   self.i = FixedArray::default()
 }
 
 ///|
-fn refill(self : Decoder, k : Cont) -> Decode {
+fn Decoder::refill(self : Decoder, k : Cont) -> Decode {
   self.eoi()
   self.ret(k, Decode::Refill(Bytes::from_fixedarray(self.t)))
 }
@@ -622,7 +626,7 @@ fn t_decode_utf_16le(decoder : Decoder) -> Decode {
 }
 
 ///|
-fn decode_utf_16le_lo(self : Decoder, v : UTF16Decode) -> Decode {
+fn Decoder::decode_utf_16le_lo(self : Decoder, v : UTF16Decode) -> Decode {
   match v {
     UTF16Uchar(u) => self.ret(decode_utf_16le, Uchar(u))
     UTF16Malformed(s) => self.ret(decode_utf_16le, Malformed(s))
@@ -744,7 +748,7 @@ fn[T, U, V] curry(f : (T, U) -> V) -> (T) -> (U) -> V {
 }
 
 ///|
-fn decode_utf_16be_lo(self : Decoder, decode : UTF16Decode) -> Decode {
+fn Decoder::decode_utf_16be_lo(self : Decoder, decode : UTF16Decode) -> Decode {
   match decode {
     UTF16Uchar(x) => self.ret(decode_utf_16be, Uchar(x))
     UTF16Malformed(x) => self.ret(decode_utf_16be, Malformed(x))

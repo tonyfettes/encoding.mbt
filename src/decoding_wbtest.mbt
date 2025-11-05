@@ -1,4 +1,11 @@
 ///|
+fn String::to_utf16le_bytes(self : String) -> Bytes {
+  let array = FixedArray::make(self.length() * 2, Byte::default())
+  array.blit_from_string(0, self, 0, self.length())
+  array.unsafe_reinterpret_as_bytes()
+}
+
+///|
 test "streaming decoding UTF8 rabbit" {
   let inputs = [b"abc", b"\xf0", b"\x9f\x90\xb0"] // UTF8(🐰) == <F09F 90B0>
   let decoder = decoder(UTF8)
@@ -67,7 +74,7 @@ test "streaming decoding UTF16LE ASCII" {
     let decoder = decoder(UTF16LE)
 
     // NOTE: `to_bytes` means `to_utf16le_bytes` to MoonBit String
-    let chunks = ascii.to_bytes().to_array().chunks(17)
+    let chunks = ascii.to_utf16le_bytes().to_array().chunks(17)
     assert_eq(chunks.length(), 5)
 
     // chunk by chunk
@@ -103,7 +110,7 @@ test "streaming decoding UTF16LE ASCII" {
   // check accumulator
   let decoder = decoder(UTF16LE)
   let acc = StringBuilder::new()
-  for chunk in ascii.to_bytes().to_array().chunks(7) {
+  for chunk in ascii.to_utf16le_bytes().to_array().chunks(7) {
     acc.write_string(decoder.consume(from_array(chunk)).to_string())
   }
   assert_true(decoder.finish().is_empty())
@@ -224,8 +231,8 @@ test "streaming decoding UTF16BE Tao71" {
 ///|
 test "decoding String (UTF16LE encoded) to String (buffer.write_bytes)" {
   let src = "你好👀"
-  let buf = @buffer.new(size_hint=src.to_bytes().length())
-  buf.write_bytes(src.to_bytes())
+  let buf = @buffer.new(size_hint=src.to_utf16le_bytes().length())
+  buf.write_bytes(src.to_utf16le_bytes())
   assert_eq(buf.to_bytes(), b"\x60\x4f\x7d\x59\x3d\xd8\x40\xdc")
   let decoder = decoder(UTF16LE)
   let chars = decoder.decode(buf.to_bytes())
@@ -235,8 +242,8 @@ test "decoding String (UTF16LE encoded) to String (buffer.write_bytes)" {
 ///|
 test "decode_to/UTF16LE" {
   let src = "你好👀"
-  let buf = @buffer.new(size_hint=src.to_bytes().length())
-  buf.write_bytes(src.to_bytes())
+  let buf = @buffer.new(size_hint=src.to_utf16le_bytes().length())
+  buf.write_bytes(src.to_utf16le_bytes())
   let decoder = decoder(UTF16LE)
   let acc = StringBuilder::new()
   decoder.decode_to(buf.to_bytes(), acc)
@@ -758,7 +765,7 @@ test "lossy decoding UTF16BE which is `HI+!LO`" {
 }
 
 ///|
-test "decode_lossy_to/UTF16BE" {
+test "decode_lossy_to/UTF16BE/as-many-as-possible" {
   let src = b"\xD8\x00\x00\x48"
   assert_eq(src, b"\xd8\x00\x00\x48")
   let decoder = decoder(UTF16BE)
@@ -801,7 +808,8 @@ test "decode_lossy_to/empty" {
   inspect(acc.to_string(), content="")
 }
 
-///| https://learn.microsoft.com/en-us/windows/win32/intl/surrogates-and-supplementary-characters
+///|
+/// https://learn.microsoft.com/en-us/windows/win32/intl/surrogates-and-supplementary-characters
 /// > The first (high) surrogate is a 16-bit code value in the range U+D800 to U+DBFF.
 /// > The second (low) surrogate is a 16-bit code value in the range U+DC00 to U+DFFF.
 test "Not all UTF16LE is format-legal UTF16BE and vice versa" {

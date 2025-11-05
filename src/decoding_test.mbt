@@ -12,6 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+///|
+fn String::to_utf16le_bytes(self : String) -> Bytes {
+  let array = FixedArray::make(self.length() * 2, Byte::default())
+  array.blit_from_string(0, self, 0, self.length())
+  array.unsafe_reinterpret_as_bytes()
+}
+
 // Streaming
 
 ///|
@@ -28,8 +35,8 @@ test "decode_to/UTF8" {
 ///|
 test "decode_to/UTF16LE" {
   let src = "你好👀"
-  let buf = @buffer.new(size_hint=src.to_bytes().length())
-  buf.write_bytes(src.to_bytes())
+  let buf = @buffer.new(size_hint=src.to_utf16le_bytes().length())
+  buf.write_bytes(src.to_utf16le_bytes())
   let acc = StringBuilder::new()
   decode_to(buf.to_bytes(), acc, encoding=UTF16LE)
   inspect(acc.to_string(), content="你好👀")
